@@ -1,0 +1,7 @@
+# CMake build trees (all presets build under build/<preset>)
+build/
+
+# Editor / tooling
+.cache/
+.vscode/
+*.swp

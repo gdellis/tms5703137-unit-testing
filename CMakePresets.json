@@ -1,0 +1,44 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": { "major": 3, "minor": 21, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "host",
+      "displayName": "Host (gcc)",
+      "description": "Build and run the unit tests natively on the development machine with gcc",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/host",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "host-clang",
+      "displayName": "Host (clang)",
+      "description": "Same as 'host' but with clang, to keep the code compiler-neutral",
+      "inherits": "host",
+      "binaryDir": "${sourceDir}/build/host-clang",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "host", "configurePreset": "host" },
+    { "name": "host-clang", "configurePreset": "host-clang" }
+  ],
+  "testPresets": [
+    {
+      "name": "host",
+      "configurePreset": "host",
+      "output": { "outputOnFailure": true, "verbosity": "default" }
+    },
+    {
+      "name": "host-clang",
+      "configurePreset": "host-clang",
+      "output": { "outputOnFailure": true, "verbosity": "default" }
+    }
+  ]
+}
