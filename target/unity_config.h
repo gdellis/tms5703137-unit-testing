@@ -26,9 +26,11 @@
 #define UNITY_OUTPUT_COMPLETE()                  unity_target_complete()
 #define UNITY_OUTPUT_COMPLETE_HEADER_DECLARATION unity_target_complete(void)
 
-/* Floating-point asserts stay enabled: HALCoGen's _c_int00 turns the VFP on
- * (_coreEnableVfp_). If your start-up code does not, define UNITY_EXCLUDE_FLOAT here
- * and the float tests become compile errors rather than undefined-instruction traps. */
+/* Floating-point asserts stay enabled. HALCoGen's _c_int00 does NOT turn the VFP on,
+ * so unity_target_io.c calls _coreEnableVfp_() before the first test runs (see
+ * TMS570_ENABLE_VFP in target/CMakeLists.txt). On a part with no FPU, define
+ * UNITY_EXCLUDE_FLOAT here and turn TMS570_ENABLE_VFP off: the float asserts then
+ * become compile errors rather than undefined-instruction traps. */
 
 /* No ANSI colour over the serial link (Unity default). */
 

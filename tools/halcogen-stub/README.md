@@ -7,6 +7,7 @@ output, so the cross-build can be exercised without HALCoGen (Windows-only):
 |---|---|---|
 | `include/sys_common.h` | the HALCoGen integer typedefs (`uint8`, `uint32`, …) | |
 | `include/sci.h`, `source/sci.c` | the SCI API Unity's output hooks call, as **no-ops** | a UART driver: nothing is configured, nothing is transmitted |
+| `include/sys_core.h`, `source/sys_core.c` | `_coreEnableVfp_()`, which `unity_target_io.c` calls before the first test, as a **no-op** | the real core init in HALCoGen's `sys_core.asm` |
 | `source/sys_link.cmd` | the TMS570LS3137 memory map and section placement HALCoGen 4.07 generates | |
 | `source/sys_intvecs.asm` | a vector table whose reset entry branches to the TI RTS `_c_int00` | HALCoGen start-up: no PLL, no RAM/ECC init, no VFP enable, no mode stacks |
 | `source/sys_main.c` | a `main()` that would collide with the Unity runner's | included by mistake: it proves the build excludes `sys_main.c` |
