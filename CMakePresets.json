@@ -23,11 +23,51 @@
       "cacheVariables": {
         "CMAKE_C_COMPILER": "clang"
       }
+    },
+    {
+      "name": "target",
+      "displayName": "TMS570LS3137 (TI armcl, runs on the board)",
+      "description": "Cross-compile the same tests with the TI ARM compiler; Unity output over SCI. Needs TI_CGT_ARM_ROOT and a HALCoGen project in target/halcogen (see docs/03-on-target.md)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/target",
+      "toolchainFile": "${sourceDir}/cmake/toolchain-ti-armcl.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_TESTING": "ON",
+        "TI_CGT_ARM_ROOT": "$env{TI_CGT_ARM_ROOT}",
+        "HALCOGEN_DIR": "${sourceDir}/target/halcogen",
+        "CMAKE_CROSSCOMPILING_EMULATOR": "${sourceDir}/tools/run_on_target.sh"
+      }
+    },
+    {
+      "name": "target-dryrun",
+      "displayName": "TMS570LS3137 dry run (no TI compiler)",
+      "description": "Exercises the whole cross-build (toolchain file, target/CMakeLists.txt, link lines, CTest wiring) with stand-in armcl/armar scripts and an empty HALCoGen stub. Produces empty .out files. Used by CI",
+      "inherits": "target",
+      "binaryDir": "${sourceDir}/build/target-dryrun",
+      "cacheVariables": {
+        "TI_CGT_ARM_ROOT": "${sourceDir}/tools/dryrun",
+        "HALCOGEN_DIR": "${sourceDir}/tools/dryrun/halcogen-stub",
+        "CMAKE_CROSSCOMPILING_EMULATOR": "${sourceDir}/tools/dryrun/run_on_target",
+        "CMAKE_C_COMPILER": "${sourceDir}/tools/dryrun/armcl",
+        "CMAKE_ASM_COMPILER": "${sourceDir}/tools/dryrun/armcl",
+        "CMAKE_AR": "${sourceDir}/tools/dryrun/armar",
+        "CMAKE_C_COMPILER_ID": "TI",
+        "CMAKE_C_COMPILER_ID_RUN": "TRUE",
+        "CMAKE_C_COMPILER_FORCED": "TRUE",
+        "CMAKE_C_COMPILER_VERSION": "20.2.7",
+        "CMAKE_C_COMPILER_ARCHITECTURE_ID": "ARM",
+        "CMAKE_ASM_COMPILER_ID": "TI",
+        "CMAKE_ASM_COMPILER_VERSION": "20.2.7",
+        "CMAKE_ASM_COMPILER_ARCHITECTURE_ID": "ARM"
+      }
     }
   ],
   "buildPresets": [
-    { "name": "host", "configurePreset": "host" },
-    { "name": "host-clang", "configurePreset": "host-clang" }
+    { "name": "host",          "configurePreset": "host" },
+    { "name": "host-clang",    "configurePreset": "host-clang" },
+    { "name": "target",        "configurePreset": "target" },
+    { "name": "target-dryrun", "configurePreset": "target-dryrun" }
   ],
   "testPresets": [
     {
@@ -39,6 +79,18 @@
       "name": "host-clang",
       "configurePreset": "host-clang",
       "output": { "outputOnFailure": true, "verbosity": "default" }
+    },
+    {
+      "name": "target",
+      "configurePreset": "target",
+      "description": "Flashes and runs each test binary on the board via tools/run_on_target.sh, one at a time",
+      "execution": { "jobs": 1, "timeout": 300 },
+      "output": { "outputOnFailure": true, "verbosity": "verbose" }
+    },
+    {
+      "name": "target-dryrun",
+      "configurePreset": "target-dryrun",
+      "output": { "outputOnFailure": true, "verbosity": "verbose" }
     }
   ]
 }

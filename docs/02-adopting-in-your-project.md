@@ -25,10 +25,12 @@ services the application depends on.
 
 ## 2. Copy the build glue
 
-Copy `cmake/`, `CMakePresets.json`, `test/support/cmock_config.yml` and the relevant
-lines from the top-level `CMakeLists.txt`. Keep the target build (CCS project) as-is;
-CMake here only builds host tests. The CCS project and the CMake project simply share
-the `src/` tree.
+Copy `cmake/`, `CMakePresets.json`, `test/support/cmock_config.yml`, `target/`,
+`tools/` and the relevant lines from the top-level `CMakeLists.txt`. Keep the
+firmware's own target build (CCS project) as-is; CMake here builds the host tests and,
+with the `target` preset, the on-target *test* binaries - never the firmware. The CCS
+project and the CMake project simply share the `src/` tree (and, for the on-target
+run, the HALCoGen directory).
 
 Add include paths for whatever the code under test needs (HALCoGen `include/`, Embedded
 Coder output, etc.) via the `INCLUDES` argument of `add_unity_test()`.
@@ -93,7 +95,7 @@ changes.
   ```cmake
   add_library(heater_ctrl_model STATIC heater_ctrl.c heater_ctrl_data.c)
   target_include_directories(heater_ctrl_model PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-  target_compile_options(heater_ctrl_model PRIVATE -Wall -Wextra)   # no -Werror
+  target_compile_options(heater_ctrl_model PRIVATE $<$<C_COMPILER_ID:GNU,Clang>:-Wall;-Wextra>)  # no -Werror
   ```
 
   Generated code gets its own warning policy: report, don't fail. You cannot fix
@@ -188,19 +190,19 @@ for everything the model cannot see: unit conversion into `_U`, what drives `ena
 what the outputs are wired to, and as the per-commit gate on a CI runner without a
 MATLAB licence.
 
-## 6. Roadmap: running the same tests on the target
+## 6. Running the same tests on the target
 
-1. Add a CMake toolchain file for `armcl` (or a second CCS project) that compiles
-   Unity's `unity.c`, the generated runners and the test sources.
-2. Provide `unity_config.h` with `UNITY_OUTPUT_CHAR(c)` mapped to `sciSendByte()` (or
-   CCS CIO) and `UNITY_EXCLUDE_FLOAT` if the FPU is not initialised.
-3. Do **not** define `UNIT_TEST` for this build - the drivers should hit the real
-   registers.
-4. Run the suite once per release, or on a board in CI if you have one; the host suite
-   stays the per-commit gate.
+Done in [03-on-target.md](03-on-target.md): `cmake --preset target` cross-compiles
+every test binary with TI `armcl`, HALCoGen supplies start-up code and the SCI
+driver, Unity prints over the UART, and `ctest --preset target` flashes and captures.
+Keep `UNIT_TEST` defined there too - the overlay tests are driver-logic tests, not
+hardware tests. Run it per release, or per commit if a board sits in CI; the host
+suite stays the everyday gate.
 
 ## 7. CI
 
 `.github/workflows/ci.yml` is generic: install cmake/ninja/ruby, then
-`cmake --preset` / `cmake --build --preset` / `ctest --preset`. Copy it verbatim; add
-a `-m32` preset if you want the ILP32 check.
+`cmake --preset` / `cmake --build --preset` / `ctest --preset` for both host
+compilers, plus the `target-dryrun` preset that checks the cross-build plumbing
+without the TI tools. Copy it verbatim; add a `-m32` preset if you want the ILP32
+check on the host as well.

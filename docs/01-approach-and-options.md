@@ -46,12 +46,13 @@ real compiler/endianness before it is trusted.
 Costs: Ruby on the dev/CI machine; hardware access must be behind a mockable interface
 or a redirectable register overlay (both patterns are in this repo).
 
-### Unity on-target (CCS + armcl)  -  pass 2
+### Unity on-target (CCS + armcl)  -  pass 3, done
 
-Same tests, cross-compiled. Needs a CCS project (or a CMake toolchain file for
-`armcl`), a linker script with a small RAM/Flash budget for the test binary, and an
-output channel. Worth doing once for a representative module to validate the host
-results; not worth doing for every commit.
+Same tests, cross-compiled with a CMake toolchain file for `armcl`; HALCoGen provides
+start-up code, `sys_link.cmd` and the SCI driver; Unity prints over the UART and
+`ctest` flashes/captures. Worth running per release (or per commit with a board in
+CI) to validate the host results against the real compiler and endianness; not a
+replacement for the host suite. See [03-on-target.md](03-on-target.md).
 
 ### Simulink Embedded Coder SIL/PIL  -  complementary
 
@@ -101,7 +102,11 @@ Pass 2 (this repository too): **Embedded Coder folder convention, `Model_step()`
 tests and mocking the model from its caller** - two more patterns, see README and
 [02-adopting-in-your-project.md](02-adopting-in-your-project.md) section 5.
 
-Follow-ups: on-target run of the same tests; coverage.
+Pass 3: **on-target execution** of the same binaries with `armcl` + HALCoGen, output
+over SCI, CTest-driven flashing, and a dry-run preset for CI - see
+[03-on-target.md](03-on-target.md).
+
+Follow-up: coverage.
 
 ## Pitfalls to design around from day one
 
@@ -109,7 +114,8 @@ Follow-ups: on-target run of the same tests; coverage.
   punning, packing CAN/SCI frames, checksums over raw memory). Write those routines with
   explicit shifts/masks, and schedule them for the on-target run.
 - **Integer widths.** Use `<stdint.h>` types everywhere. Optionally build the host
-  tests with `-m32` (gcc-multilib) to get an ILP32 data model that matches the target.
+  tests with `-m32` (gcc-multilib) to get an ILP32 data model that matches the target;
+  the on-target run (docs/03) is the definitive check.
 - **`volatile` register access.** Keep it inside the driver layer; that is the layer
   you test with the overlay trick, and its callers with mocks.
 - **TI intrinsics and pragmas.** `_disable_IRQ_interrupt_()`, `_enable_interrupt_()`,
