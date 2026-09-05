@@ -1,0 +1,16 @@
+# CMock configuration. Full reference:
+# https://github.com/ThrowTheSwitch/CMock/blob/master/docs/CMock_Summary.md
+:cmock:
+  :mock_prefix: mock_
+  :when_no_prototypes: :warn
+  # Fail a test if expected calls happen out of order - what you want for driver
+  # sequences (e.g. "reset before enable").
+  :enforce_strict_ordering: true
+  :plugins:
+    - :ignore            # <func>_Ignore(), _IgnoreAndReturn()
+    - :ignore_arg        # <func>_IgnoreArg_<param>()
+    - :expect_any_args   # <func>_ExpectAnyArgs()
+    - :return_thru_ptr   # <func>_ReturnThruPtr_<param>() for out-parameters
+  # Tell CMock how to compare project types it cannot see through.
+  :treat_as:
+    adc_hal_status_t: INT
