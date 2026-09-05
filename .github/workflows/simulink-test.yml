@@ -1,0 +1,54 @@
+# Optional, unverified Simulink Test track. See docs/04-simulink-test.md.
+#
+# NOT wired into push/pull_request and NOT one of the ruleset's required checks
+# (.github/rulesets/main-branch-protection.json) - manual trigger only, until this
+# has actually been run against a real model and a real self-hosted runner.
+#
+# Needs:
+#   - a self-hosted runner labelled "matlab" with a licensed MATLAB install
+#     (Simulink, Simulink Coder/Embedded Coder, Simulink Test)
+#   - a real heater_ctrl.slx on the MATLAB path (this repo does not ship one -
+#     src/gen/heater_ctrl_ert_rtw/ is hand-written C, not a Simulink model)
+#   - heater_ctrl_tests.mldatx, built once via matlab/create_heater_ctrl_tests.m or
+#     the Test Manager GUI
+#   - for PIL test cases specifically: the board attached to that same runner, and
+#     TI_CGT_ARM_ROOT set up as in tools/ci/install-ti-cgt.sh
+#
+# GitHub-hosted runners cannot run this job: none of them has MATLAB or a Simulink
+# Test licence.
+
+name: Simulink Test (optional, self-hosted)
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_file:
+        description: "Test Manager file to run"
+        required: false
+        default: "heater_ctrl_tests.mldatx"
+
+jobs:
+  simulink-test:
+    name: Simulink Test (MIL/SIL/PIL)
+    runs-on: [self-hosted, matlab]
+    steps:
+      - uses: actions/checkout@v4
+
+      # matlab -batch requires MATLAB on PATH; set that up however your runner
+      # provisions it (a fixed install path, an environment module, etc.) - there is
+      # no GitHub-hosted MATLAB action usable here since this needs a licensed
+      # Simulink Test install, not a bare MATLAB.
+      - name: Run Simulink Test
+        working-directory: matlab
+        run: >
+          matlab -batch
+          "run_tests_ci('${{ github.event.inputs.test_file }}')"
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulink-test-results
+          path: |
+            matlab/CIResults-JUnit.xml
+            matlab/CIResults-report.pdf

@@ -118,7 +118,10 @@ project:
 - **Hardware-in-the-loop tests** (does the ADC actually convert?) - a separate suite
   with board fixtures, not the overlay tests re-run on silicon.
 - **Simulink Test SIL/PIL** for model-vs-code equivalence, on the Simulink side;
-  complementary to the model/glue tests here (docs/02 section 5).
+  complementary to the model/glue tests here (docs/02 section 5). An unverified
+  sketch of what that track looks like - Test Manager scripting, MIL/SIL/PIL,
+  CI on a self-hosted runner - is in
+  [docs/04-simulink-test.md](docs/04-simulink-test.md).
 - **A coverage gate** once there is real code: `-DCOVERAGE_FAIL_UNDER_LINE=<pct>`
   (docs/02 section 8).
 
