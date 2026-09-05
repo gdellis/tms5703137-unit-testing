@@ -97,8 +97,11 @@ Pass 1 = this repository: **Unity v2.7.0 + CMock v2.7.0, host-native, CMake/CTes
 GitHub Actions**. Two patterns demonstrated: mock the HAL interface; redirect the
 register overlay.
 
-Follow-ups: on-target run of the same tests; Embedded Coder folder convention and
-`Model_step()` tests; coverage.
+Pass 2 (this repository too): **Embedded Coder folder convention, `Model_step()`
+tests and mocking the model from its caller** - two more patterns, see README and
+[02-adopting-in-your-project.md](02-adopting-in-your-project.md) section 5.
+
+Follow-ups: on-target run of the same tests; coverage.
 
 ## Pitfalls to design around from day one
 

@@ -29,36 +29,54 @@ Swap `host` for `host-clang` to build with clang. Both run in CI
 ## What is in the box
 
 ```
-src/app/temp_monitor.[ch]     application logic under test (calls the HAL)
-src/hal/adc_hal.h             the HAL interface  -> mocked by CMock in app tests
-src/hal/adc_hal.c             the HAL driver     -> tested against a RAM register overlay
-src/hal/tms570_adc_regs.h     HALCoGen-style register struct; #ifdef UNIT_TEST redirects it
-test/test_temp_monitor.c      app tests: pure maths + mock-driven interaction tests
-test/test_adc_hal.c           driver tests: pre-load "registers", inspect what was written
-test/support/cmock_config.yml CMock plugins/options
-cmake/FetchUnityCMock.cmake   pins Unity v2.7.0 + CMock v2.7.0 via FetchContent
-cmake/UnityTest.cmake         add_cmock_mock() / add_unity_test() helpers
+src/app/temp_monitor.[ch]        application logic under test (calls the ADC HAL)
+src/app/heater_task.[ch]         glue: sensor -> model inputs, model outputs -> GIO pin
+src/hal/adc_hal.[ch]             ADC HAL: mocked in app tests, overlay-tested itself
+src/hal/gio_hal.[ch]             GIO HAL: same treatment
+src/hal/tms570_*_regs.h          HALCoGen-style register structs; #ifdef UNIT_TEST redirects them
+src/gen/heater_ctrl_ert_rtw/     Embedded Coder-style model output (a labelled stand-in,
+                                 laid out exactly like ERT output - see docs/02 section 5)
+test/test_temp_monitor.c         app tests: pure maths + mock-driven interaction tests
+test/test_adc_hal.c              driver tests: pre-load "registers", inspect what was written
+test/test_gio_hal.c              driver tests, same pattern
+test/test_heater_ctrl.c          model tests: set _U, call _step(), assert _Y; tune _P
+test/test_heater_task.c          glue tests: sensor, GIO *and the model* are mocked
+test/support/cmock_config.yml    CMock plugins/options
+cmake/FetchUnityCMock.cmake      pins Unity v2.7.0 + CMock v2.7.0 via FetchContent
+cmake/UnityTest.cmake            add_cmock_mock() / add_unity_test() helpers
 ```
 
-Two testing patterns are demonstrated, because a TMS570 project needs both:
+Four testing patterns are demonstrated, because a TMS570 project needs all of them:
 
 1. **Mock the HAL boundary** (`test_temp_monitor.c`). Application code is compiled
    against a CMock-generated `mock_adc_hal.c`. Tests state which HAL calls are
    expected, with what arguments, and what they return - including out-parameters via
    `_ReturnThruPtr_`. Unexpected or missing calls fail the test.
 
-2. **Redirect the register overlay** (`test_adc_hal.c`). Driver code that pokes
-   memory-mapped registers is compiled unchanged with `-DUNIT_TEST`, which makes
-   `adcREG1` point at a plain `adcBASE_t` struct owned by the test instead of
+2. **Redirect the register overlay** (`test_adc_hal.c`, `test_gio_hal.c`). Driver code
+   that pokes memory-mapped registers is compiled unchanged with `-DUNIT_TEST`, which
+   makes `adcREG1` point at a plain `adcBASE_t` struct owned by the test instead of
    `0xFFF7C000`. The test pre-loads status bits / FIFO words and asserts on what the
    driver wrote. This is how you test HALCoGen-level code without hardware.
+
+3. **Drive generated code as shipped** (`test_heater_ctrl.c`). The Embedded Coder
+   output is built once as a library (no `UNIT_TEST`, its own warning policy) and the
+   test links that library. Set `heater_ctrl_U`, call `heater_ctrl_step()`, assert on
+   `heater_ctrl_Y`; twist `heater_ctrl_P` to test tunable parameters. No mocks.
+
+4. **Mock generated code from its caller** (`test_heater_task.c`). The hand-written
+   glue that feeds the model is tested with the model replaced by a CMock mock, so a
+   model change cannot break a glue test and vice versa. Shows the two wrinkles this
+   involves: CMock must be told to mock `extern` prototypes, and the model's global
+   `_U`/`_Y` structs have to be defined by the test.
 
 ## Adding a test
 
 1. Write `test/test_<module>.c` with `setUp`, `tearDown` and `void test_*(void)`
-   functions. `#include "mock_<header>.h"` for every HAL header you want mocked.
+   functions. `#include "mock_<header>.h"` for every header you want mocked.
 2. In `test/CMakeLists.txt`: `add_cmock_mock(<header>)` once per header, then
-   `add_unity_test(test_<module> SOURCES <files under test> MOCKS <mock targets>)`.
+   `add_unity_test(test_<module> SOURCES <files under test> MOCKS <mock targets>
+   [LIBS <prebuilt libraries>])`.
 3. `cmake --build --preset host && ctest --preset host`.
 
 Runners are generated - test files never contain `main()`.
@@ -67,8 +85,8 @@ Runners are generated - test files never contain `main()`.
 
 - **On-target execution** of the same Unity tests with the TI ARM compiler (CCS,
   simulator or board) to catch big-endian / ILP32 / compiler-specific behaviour.
-- **Simulink Embedded Coder** modules: SIL/PIL in Simulink Test for model
-  equivalence, plus host Unity tests calling `Model_step()` for integration.
 - **Coverage** (gcov/lcov on host) once there is real code to measure.
+- **Simulink Test SIL/PIL** for model-vs-code equivalence lives on the Simulink side
+  and is complementary to the model/glue tests here; see docs/02 section 5.
 
 See [docs/01-approach-and-options.md](docs/01-approach-and-options.md) for details.
