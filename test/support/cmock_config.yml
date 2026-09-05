@@ -6,11 +6,23 @@
   # Fail a test if expected calls happen out of order - what you want for driver
   # sequences (e.g. "reset before enable").
   :enforce_strict_ordering: true
+  # CMock skips `extern` prototypes by default. Embedded Coder declares every model
+  # entry point `extern void Model_step(void);`, so without this the model mock is
+  # generated empty and the link fails with undefined heater_ctrl_step_Expect etc.
+  :treat_externs: :include
   :plugins:
     - :ignore            # <func>_Ignore(), _IgnoreAndReturn()
     - :ignore_arg        # <func>_IgnoreArg_<param>()
     - :expect_any_args   # <func>_ExpectAnyArgs()
     - :return_thru_ptr   # <func>_ReturnThruPtr_<param>() for out-parameters
+    - :callback          # <func>_Stub(cb) / _AddCallback(cb): hand-written fakes for
+                         # functions whose effect is on globals (e.g. Model_step())
   # Tell CMock how to compare project types it cannot see through.
   :treat_as:
-    adc_hal_status_t: INT
+    adc_hal_status_t:      INT
+    gio_hal_status_t:      INT
+    temp_monitor_status_t: INT
+    # Embedded Coder rtwtypes.h
+    boolean_T: UINT8
+    real32_T:  FLOAT
+    real_T:    DOUBLE

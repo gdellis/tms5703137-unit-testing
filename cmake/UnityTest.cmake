@@ -4,10 +4,12 @@
 #       Generates mock_<header>.c/.h with CMock and wraps them in a static library
 #       target named mock_<header>. Link that target into any test that needs it.
 #
-#   add_unity_test(<name> SOURCES <src...> [MOCKS <mock targets...>] [INCLUDES <dirs...>])
+#   add_unity_test(<name> SOURCES <src...> [MOCKS <mock targets...>]
+#                  [INCLUDES <dirs...>] [LIBS <targets...>])
 #       Builds test/<name>.c together with a generated Unity runner and the listed
 #       firmware sources (compiled with -DUNIT_TEST), links the mocks and registers
-#       the executable with CTest.
+#       the executable with CTest. LIBS links pre-built libraries *as shipped* (no
+#       UNIT_TEST recompile) - used for generated code such as Embedded Coder models.
 
 set(CMOCK_CONFIG_DIR  ${CMAKE_SOURCE_DIR}/test/support)
 set(CMOCK_CONFIG_FILE cmock_config.yml)
@@ -42,7 +44,7 @@ function(add_cmock_mock HEADER)
 endfunction()
 
 function(add_unity_test NAME)
-    cmake_parse_arguments(UT "" "" "SOURCES;MOCKS;INCLUDES" ${ARGN})
+    cmake_parse_arguments(UT "" "" "SOURCES;MOCKS;INCLUDES;LIBS" ${ARGN})
 
     set(_test_src ${CMAKE_CURRENT_SOURCE_DIR}/${NAME}.c)
     set(_runner   ${CMAKE_CURRENT_BINARY_DIR}/runners/${NAME}_runner.c)
@@ -65,7 +67,7 @@ function(add_unity_test NAME)
     target_compile_definitions(${NAME} PRIVATE UNIT_TEST)
     target_compile_options(${NAME} PRIVATE -Wall -Wextra)
     target_include_directories(${NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/support ${UT_INCLUDES})
-    target_link_libraries(${NAME} PRIVATE unity::framework ${UT_MOCKS})
+    target_link_libraries(${NAME} PRIVATE unity::framework ${UT_MOCKS} ${UT_LIBS})
 
     add_test(NAME ${NAME} COMMAND ${NAME})
 endfunction()

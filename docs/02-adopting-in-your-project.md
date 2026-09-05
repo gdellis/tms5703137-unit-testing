@@ -75,27 +75,118 @@ This sandbox uses the simpler `#ifdef UNIT_TEST` form in its own (non-generated)
 
 ## 5. Simulink Embedded Coder modules
 
-- Generate with `ert.tlc`, "Reusable function" or "Nonreusable function" interface;
-  put the output under `src/gen/<ModelName>/` and never edit it.
-- Set *Hardware Implementation → Device vendor/type* to ARM Cortex-R and enable
-  *Support: long long* only if the target compiler does; keep *Test hardware* matching
-  the host for SIL runs.
-- Host Unity tests can drive the model directly:
+Worked example in this repo: model `heater_ctrl` under `src/gen/heater_ctrl_ert_rtw/`,
+its glue `src/app/heater_task.c`, and the tests `test_heater_ctrl.c` (model driven
+directly) and `test_heater_task.c` (model mocked). The generated files there are a
+labelled hand-written stand-in with the exact layout of ERT output, so the mechanics
+can be exercised without MATLAB; swap the directory for real output and nothing else
+changes.
 
-  ```c
-  #include "MyModel.h"
-  void test_step_raises_output_when_input_high(void) {
-      MyModel_initialize();
-      MyModel_U.temperature = 105.0f;
-      MyModel_step();
-      TEST_ASSERT_TRUE(MyModel_Y.fault);
-  }
+### 5.1 Folder convention
+
+- Copy Embedded Coder's `<model>_ert_rtw/` directory to `src/gen/<model>_ert_rtw/`
+  verbatim (or point *Code Generation → Code generation folder* there). If the model
+  uses shared utilities, `slprj/ert/_sharedutils/` comes too.
+- Add one hand-maintained `CMakeLists.txt` in that directory (the only file you own
+  there) that builds the model as a static library:
+
+  ```cmake
+  add_library(heater_ctrl_model STATIC heater_ctrl.c heater_ctrl_data.c)
+  target_include_directories(heater_ctrl_model PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+  target_compile_options(heater_ctrl_model PRIVATE -Wall -Wextra)   # no -Werror
   ```
 
-  Generated code calls no hardware itself, so no mocks are needed unless your model has
-  custom-code blocks that call the HAL - then mock that HAL header as usual.
-- Keep Simulink Test (SIL/PIL, equivalence, coverage) for model-level verification;
-  use Unity for the integration seams between generated and hand-written code.
+  Generated code gets its own warning policy: report, don't fail. You cannot fix
+  warnings in generated code; you change model settings and regenerate.
+- Never edit generated files. After a regeneration the diff should be confined to
+  `src/gen/`; if tests then fail, the model's interface or behaviour changed, which is
+  exactly what you want to know.
+
+### 5.2 Model configuration that matters for host testing
+
+| Configuration parameter | Set to | Why |
+|---|---|---|
+| System target file | `ert.tlc` | Bare-metal output, no `rtModel` scheduler baggage |
+| Code interface packaging | *Nonreusable function* | Globals `<m>_U`, `<m>_Y`, `<m>_P`, `<m>_DW`, entry points `<m>_step()`; what this repo assumes. *Reusable function* passes an `RT_MODEL_<m>_T*` and the structs as arguments instead - tests then own an instance of each |
+| Generate an example main program | off | `ert_main.c` would define a second `main()` next to Unity's runner |
+| Default parameter behavior | *Tunable* | Emits `<m>_P` so tests can move set-points, thresholds, debounce counts. *Inlined* bakes them into the code as constants |
+| Remove internal data zero initialization | (default on) | `<m>_initialize()` then does **not** clear states/IO; it relies on C start-up. Tests must `memset` `<m>_DW`, `<m>_U`, `<m>_Y` in `setUp()` (see `test_heater_ctrl.c`), or turn this off |
+| Hardware Implementation → Device | ARM Compatible / ARM Cortex-R | Fixes `rtwtypes.h`: `int32_T` = `int`, big-endian, no `long long` unless the TI compiler is told to support it |
+
+### 5.3 `rtwtypes.h` and host compilers
+
+- `int32_T`/`uint32_T` map to `int`/`unsigned int`, 32-bit on both target and host.
+  `ulong_T` (`unsigned long`) is 64-bit on x86-64; if generated code uses it, build
+  the tests with `-m32`.
+- `rtwtypes.h` defines `true`/`false` as `(1U)`/`(0U)` **only if not already defined**.
+  Including it *before* `<stdbool.h>` makes `<stdbool.h>` redefine them (`1U` → `1`).
+  gcc and clang stay silent only because the second definition is inside a system
+  header (`-Wsystem-headers` shows it); a HALCoGen or project header that defines
+  `true`/`false` itself, MISRA checkers, and other front ends report it, and under
+  `-Werror` that is a build break. Rule: in any file that mixes them, include the
+  hand-written headers (which pull in `<stdbool.h>`) before the generated header.
+  `heater_task.c` and `test_heater_task.c` show the order.
+- Tell CMock about the generated types once, in `cmock_config.yml`:
+  `boolean_T: UINT8`, `real32_T: FLOAT`, `real_T: DOUBLE`.
+
+### 5.4 Testing the model directly (`test_heater_ctrl.c`)
+
+```cmake
+add_unity_test(test_heater_ctrl LIBS heater_ctrl_model)   # no SOURCES, no mocks
+```
+
+The test links the same library object code the firmware uses. Pattern:
+
+```c
+static boolean_T step(real32_T temp_degC, boolean_T enable) {
+    heater_ctrl_U.temp_degC = temp_degC;
+    heater_ctrl_U.enable    = enable;
+    heater_ctrl_step();
+    return heater_ctrl_Y.heater_cmd;
+}
+```
+
+- Time is step count: an expectation "faults after 300 ms" at Ts = 0.1 s is "on the
+  third step". Write a `step_n()` helper and name the constants after the requirement.
+- Float outputs: use `TEST_ASSERT_FLOAT_WITHIN`, not `_EQUAL_FLOAT`, for anything that
+  went through arithmetic.
+- Tunable parameters are one global; save a copy in the first `setUp()` and restore it
+  in `tearDown()` or later tests inherit the change.
+- Multi-rate models emit `<m>_step0()`, `<m>_step1()`, ...; call them in the ratio the
+  scheduler would.
+- Generated code calls no hardware, so no mocks - unless the model has custom-code /
+  S-function blocks that call your HAL; then mock that HAL header as usual.
+
+### 5.5 Mocking the model from its caller (`test_heater_task.c`)
+
+The glue that feeds the model (sensor scaling, enable logic, output plumbing) should
+be tested with the model *mocked*, so the two test files fail for different reasons.
+Two things bite:
+
+1. **`extern` prototypes.** CMock's `:treat_externs` defaults to `:exclude`, and every
+   Embedded Coder entry point is declared `extern void <m>_step(void);`. The mock is
+   generated **empty** and the link fails with undefined `<m>_step_Expect`. Set
+   `:treat_externs: :include` in `cmock_config.yml`.
+2. **Data objects.** The mock supplies functions only. `<m>_U` and `<m>_Y` are extern
+   globals declared in the model header, so the test defines them. Use the `:callback`
+   plugin to install a fake `<m>_step()` that snapshots `_U` and writes the `_Y` the
+   scenario needs:
+
+   ```c
+   ExtU_heater_ctrl_T heater_ctrl_U;            /* normally in heater_ctrl.c */
+   ExtY_heater_ctrl_T heater_ctrl_Y;
+
+   static void fake_step(int num_calls) { seen_U = heater_ctrl_U; heater_ctrl_Y = next_Y; }
+   void setUp(void) { heater_ctrl_step_Stub(fake_step); }
+   ```
+
+### 5.6 Where Simulink Test still fits
+
+Keep Simulink Test (SIL/PIL, back-to-back equivalence, model coverage) for proving
+the generated code matches the model and meets model-level requirements. Use Unity
+for everything the model cannot see: unit conversion into `_U`, what drives `enable`,
+what the outputs are wired to, and as the per-commit gate on a CI runner without a
+MATLAB licence.
 
 ## 6. Roadmap: running the same tests on the target
 
