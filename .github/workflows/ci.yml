@@ -119,6 +119,24 @@ jobs:
       - name: Build
         run: cmake --build --preset target-ci -- -v
 
+      # Guards against a vacuously green job: every test must have produced a
+      # non-empty image whose map shows the vector table placed at address 0. That
+      # last part is what proves the board-support objects are linked in directly
+      # rather than sitting unreferenced in an archive.
+      - name: Check the images are real
+        run: |
+          set -eu
+          count=0
+          for out in build/target-ci/test/*.out; do
+            map="build/target-ci/$(basename "${out%.out}").map"
+            test -s "$out" || { echo "empty image: $out"; exit 1; }
+            grep -q '\.intvecs' "$map" || { echo "no .intvecs placed in $map"; exit 1; }
+            grep -q '_c_int00' "$map" || { echo "no entry point in $map"; exit 1; }
+            count=$((count + 1))
+          done
+          test "$count" -eq 5 || { echo "expected 5 images, found $count"; exit 1; }
+          echo "$count target images linked and checked"
+
       - name: Upload test images and map files
         uses: actions/upload-artifact@v4
         with:

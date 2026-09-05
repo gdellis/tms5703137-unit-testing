@@ -70,7 +70,10 @@ How it is wired:
 - `cmake/toolchain-ti-armcl.cmake` picks `armcl`/`armar` and the CPU flags
   (`-mv7R4 --code_state=32 --float_support=VFPv3D16 --abi=eabi --endian=big`,
   `--enum_type=packed`). CMake's own TI compiler support provides everything else
-  (`--compile_only`, `--run_linker`, `--include_path=`, `--c11`, depfiles).
+  (`--compile_only`, `--run_linker`, `--include_path=`, `--c11`, depfiles). It also
+  puts `$TI_CGT_ARM_ROOT/include` and `/lib` on the search paths: armcl locates its
+  own `stddef.h`, `setjmp.h` and run-time libraries through `C_DIR`/`TI_ARM_C_DIR`,
+  which CCS sets and a plain shell or CI runner does not.
 - `target/CMakeLists.txt` compiles the HALCoGen sources (`C_EXTENSIONS ON` →
   `--relaxed_ansi`; the rest of the tree is `--strict_ansi`) as an **object** library,
   so the vector table and start-up code are always linked even though no symbol

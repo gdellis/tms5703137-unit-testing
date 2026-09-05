@@ -31,13 +31,19 @@ find_program(CMAKE_AR           armar HINTS "${TI_CGT_ARM_ROOT}/bin" REQUIRED)
 # Cortex-R4F, ARM (32-bit) instruction state, VFPv3-D16, EABI, big-endian (BE-32).
 set(TMS570_CPU_FLAGS "-mv7R4 --code_state=32 --float_support=VFPv3D16 --abi=eabi --endian=big")
 
+# armcl finds its own runtime headers (stddef.h, setjmp.h, stdint.h, ...) through the
+# C_DIR / TI_ARM_C_DIR environment variables, which CCS sets and a plain shell does
+# not. Put the compiler's own include directory on the search path explicitly so the
+# build does not depend on the environment it is launched from.
+set(TI_CGT_ARM_INCLUDE "--include_path=${TI_CGT_ARM_ROOT}/include")
+
 # --enum_type=packed is the HALCoGen/CCS default for this device. It makes enums as
 # small as their values allow, so sizeof(enum) differs from the host - one of the
 # things an on-target run is there to catch.
 set(CMAKE_C_FLAGS_INIT
-    "${TMS570_CPU_FLAGS} --enum_type=packed --diag_warning=225 --diag_wrap=off --display_error_number")
+    "${TMS570_CPU_FLAGS} ${TI_CGT_ARM_INCLUDE} --enum_type=packed --diag_warning=225 --diag_wrap=off --display_error_number")
 set(CMAKE_ASM_FLAGS_INIT
-    "${TMS570_CPU_FLAGS} --diag_wrap=off --display_error_number")
+    "${TMS570_CPU_FLAGS} ${TI_CGT_ARM_INCLUDE} --diag_wrap=off --display_error_number")
 
 # libc.a is the index that lets the linker pick the matching run-time library
 # (rtsv7R4_A_be_v3D16_eabi.lib). The HALCoGen linker command file (sys_link.cmd) is
