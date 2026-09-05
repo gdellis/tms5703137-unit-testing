@@ -30,6 +30,62 @@ jobs:
       - name: Test
         run: ctest --preset ${{ matrix.preset }}
 
+  coverage:
+    name: Coverage (gcc + gcovr)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cmake ninja-build ruby gcc
+          pip install gcovr
+
+      - name: Configure
+        run: cmake --preset host-coverage
+
+      - name: Build
+        run: cmake --build --preset host-coverage
+
+      - name: Test and report
+        run: cmake --build --preset host-coverage-report
+
+      - name: Summary
+        if: always()
+        run: |
+          echo '### Line coverage of src/' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat build/host-coverage/coverage/summary.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: build/host-coverage/coverage/
+
+  host-m32:
+    name: Host unit tests (gcc -m32, ILP32)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cmake ninja-build ruby gcc gcc-multilib
+
+      - name: Configure
+        run: cmake --preset host-m32
+
+      - name: Build
+        run: cmake --build --preset host-m32
+
+      - name: Test
+        run: ctest --preset host-m32
+
   target-dryrun:
     name: Target build dry run (no TI compiler)
     runs-on: ubuntu-latest

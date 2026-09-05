@@ -151,6 +151,23 @@ void test_sensor_error_only_after_consecutive_failures(void)
     TEST_ASSERT_EQUAL(TEMP_MONITOR_SENSOR_ERROR, temp_monitor_update());
 }
 
+void test_error_counter_saturates_without_wrapping(void)
+{
+    /* Found by the coverage report: the "already at max" side of the counter guard.
+     * Many more failures than the threshold must neither wrap nor clear the error. */
+    unsigned i;
+    for (i = 0U; i < 10U; i++)
+    {
+        given_adc_fails(ADC_HAL_ERR_TIMEOUT);
+    }
+
+    for (i = 0U; i < 10U; i++)
+    {
+        (void)temp_monitor_update();
+    }
+    TEST_ASSERT_EQUAL(TEMP_MONITOR_SENSOR_ERROR, temp_monitor_get_status());
+}
+
 void test_good_read_resets_error_counter(void)
 {
     given_adc_fails(ADC_HAL_ERR_TIMEOUT);

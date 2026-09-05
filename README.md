@@ -23,8 +23,17 @@ cmake --build --preset host    # generates mocks + runners, compiles
 ctest --preset host            # runs every test executable
 ```
 
-Swap `host` for `host-clang` to build with clang. Both run in CI
+Swap `host` for `host-clang` to build with clang, or `host-m32` for a 32-bit data
+model like the target's (needs `gcc-multilib`). All run in CI
 (`.github/workflows/ci.yml`).
+
+Coverage of the code under test (gcc + gcovr, HTML and Cobertura in
+`build/host-coverage/coverage/`):
+
+```sh
+cmake --preset host-coverage && cmake --build --preset host-coverage
+cmake --build --preset host-coverage-report     # runs the tests, writes the report
+```
 
 The same tests also run **on the board**: `cmake --preset target` cross-compiles them
 with TI `armcl` (HALCoGen supplies start-up and SCI), `ctest --preset target` flashes
@@ -50,6 +59,7 @@ test/test_heater_task.c          glue tests: sensor, GIO *and the model* are moc
 test/support/cmock_config.yml    CMock plugins/options
 cmake/FetchUnityCMock.cmake      pins Unity v2.7.0 + CMock v2.7.0 via FetchContent
 cmake/UnityTest.cmake            add_cmock_mock() / add_unity_test() helpers
+cmake/Coverage.cmake             COVERAGE option, coverage_instrument(), 'coverage' target (gcovr)
 cmake/toolchain-ti-armcl.cmake   TI ARM compiler toolchain file (Cortex-R4F, big-endian)
 target/                          on-target runtime: unity_config.h, Unity-over-SCI hooks,
                                  CMake glue for the HALCoGen project you generate there
@@ -93,10 +103,17 @@ Four testing patterns are demonstrated, because a TMS570 project needs all of th
 
 Runners are generated - test files never contain `main()`.
 
-## Roadmap (not in this pass)
+## Where to go from here
 
-- **Coverage** (gcov/lcov on host) once there is real code to measure.
-- **Simulink Test SIL/PIL** for model-vs-code equivalence lives on the Simulink side
-  and is complementary to the model/glue tests here; see docs/02 section 5.
+The roadmap from the first pass is done: host tests, Embedded Coder patterns,
+on-target execution, coverage. Things this template deliberately leaves to the real
+project:
+
+- **Hardware-in-the-loop tests** (does the ADC actually convert?) - a separate suite
+  with board fixtures, not the overlay tests re-run on silicon.
+- **Simulink Test SIL/PIL** for model-vs-code equivalence, on the Simulink side;
+  complementary to the model/glue tests here (docs/02 section 5).
+- **A coverage gate** once there is real code: `-DCOVERAGE_FAIL_UNDER_LINE=<pct>`
+  (docs/02 section 8).
 
 See [docs/01-approach-and-options.md](docs/01-approach-and-options.md) for details.

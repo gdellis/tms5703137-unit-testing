@@ -202,7 +202,59 @@ suite stays the everyday gate.
 ## 7. CI
 
 `.github/workflows/ci.yml` is generic: install cmake/ninja/ruby, then
-`cmake --preset` / `cmake --build --preset` / `ctest --preset` for both host
-compilers, plus the `target-dryrun` preset that checks the cross-build plumbing
-without the TI tools. Copy it verbatim; add a `-m32` preset if you want the ILP32
-check on the host as well.
+`cmake --preset` / `cmake --build --preset` / `ctest --preset`. Jobs:
+
+| Job | Preset | Catches |
+|---|---|---|
+| Host unit tests (gcc, clang) | `host`, `host-clang` | the per-commit gate; two compilers keep the code portable |
+| Host unit tests (gcc -m32) | `host-m32` | ILP32 assumptions (`long`, pointer width) that hide on LP64 |
+| Coverage | `host-coverage` | what the suite does not exercise; HTML report as a build artifact, summary on the job page |
+| Target build dry run | `target-dryrun` | the cross-build plumbing, without the TI tools |
+
+Copy it verbatim. The on-target run (docs/03) is not in CI unless a board is.
+
+## 8. Coverage
+
+`cmake/Coverage.cmake` adds the `COVERAGE` option and a `coverage` target; the
+`host-coverage` preset turns it on.
+
+```sh
+cmake --preset host-coverage && cmake --build --preset host-coverage
+cmake --build --preset host-coverage-report     # ctest, then gcovr
+```
+
+- **What is instrumented:** only the code under test - the firmware sources each
+  test compiles (`add_unity_test(... SOURCES ...)`) and libraries you mark with
+  `coverage_instrument(<target>)`, as the Embedded Coder model library is. The report
+  is filtered to `src/`, so Unity, CMock, mocks, runners and the test files never
+  dilute or inflate the numbers. The smoke library `tms570_app` is not instrumented;
+  it is never executed.
+- **Output:** `build/host-coverage/coverage/index.html` (per-file, per-line, with
+  branch markers), `coverage.xml` (Cobertura, for CI dashboards) and `summary.txt`.
+  `--delete` clears the counters after each report so runs do not accumulate.
+- **Gate:** `-DCOVERAGE_FAIL_UNDER_LINE=90` makes the `coverage` target fail below
+  that line coverage. Keep it at 0 until there is real code, then set it to what
+  the suite actually achieves and ratchet up.
+- **Reading branch coverage:** gcov counts *both* outcomes of every condition. The
+  first report of this sandbox showed 100% lines but two missed branches, both the
+  "already at maximum" side of a saturating counter (`if (count < MAX) count++`), in
+  `temp_monitor.c` and in the model. Those are real gaps (a wrapping counter would
+  clear a fault), so each got a test - `test_error_counter_saturates_without_wrapping`
+  and `test_overtemp_counter_saturates_without_wrapping` - and the suite is now at
+  100% branches. Expect the branch view to point at exactly this kind of thing.
+  Gate on line coverage; read branch coverage.
+- **gcc only.** clang emits a different profile format; the preset refuses other
+  compilers. gcovr runs anywhere Python does (`pip install gcovr`), including
+  Windows, which is why it was chosen over lcov/genhtml.
+- **Generated code** (Embedded Coder) is in the report on purpose: it tells you which
+  model paths the *integration* tests reach. Model-level coverage belongs to
+  Simulink Test; exclude `src/gen/` with `--exclude` in `Coverage.cmake` if you gate
+  on the number.
+
+## 9. ILP32 on the host
+
+`cmake --preset host-m32` builds and runs the suite with `-m32` (needs
+`gcc-multilib`): `long` and pointers are 32-bit, `size_t` is 32-bit, as on the
+Cortex-R4F. It is a cheap approximation of the target's data model; the on-target run
+(docs/03) is the real one. Everything else (endianness, packed enums, the compiler)
+stays host-like.

@@ -1,6 +1,10 @@
 {
   "version": 3,
-  "cmakeMinimumRequired": { "major": 3, "minor": 21, "patch": 0 },
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
   "configurePresets": [
     {
       "name": "host",
@@ -22,6 +26,26 @@
       "binaryDir": "${sourceDir}/build/host-clang",
       "cacheVariables": {
         "CMAKE_C_COMPILER": "clang"
+      }
+    },
+    {
+      "name": "host-coverage",
+      "displayName": "Host (gcc) with coverage",
+      "description": "gcc --coverage on the code under test; 'cmake --build --preset host-coverage-report' runs the tests and writes build/host-coverage/coverage/ (HTML + Cobertura) with gcovr",
+      "inherits": "host",
+      "binaryDir": "${sourceDir}/build/host-coverage",
+      "cacheVariables": {
+        "COVERAGE": "ON"
+      }
+    },
+    {
+      "name": "host-m32",
+      "displayName": "Host (gcc, -m32 / ILP32)",
+      "description": "Same tests with a 32-bit data model (long and pointers are 32-bit, as on the TMS570). Needs gcc-multilib",
+      "inherits": "host",
+      "binaryDir": "${sourceDir}/build/host-m32",
+      "cacheVariables": {
+        "CMAKE_C_FLAGS": "-m32"
       }
     },
     {
@@ -64,33 +88,91 @@
     }
   ],
   "buildPresets": [
-    { "name": "host",          "configurePreset": "host" },
-    { "name": "host-clang",    "configurePreset": "host-clang" },
-    { "name": "target",        "configurePreset": "target" },
-    { "name": "target-dryrun", "configurePreset": "target-dryrun" }
+    {
+      "name": "host",
+      "configurePreset": "host"
+    },
+    {
+      "name": "host-clang",
+      "configurePreset": "host-clang"
+    },
+    {
+      "name": "host-coverage",
+      "configurePreset": "host-coverage"
+    },
+    {
+      "name": "host-coverage-report",
+      "configurePreset": "host-coverage",
+      "targets": [
+        "coverage"
+      ]
+    },
+    {
+      "name": "host-m32",
+      "configurePreset": "host-m32"
+    },
+    {
+      "name": "target",
+      "configurePreset": "target"
+    },
+    {
+      "name": "target-dryrun",
+      "configurePreset": "target-dryrun"
+    }
   ],
   "testPresets": [
     {
       "name": "host",
       "configurePreset": "host",
-      "output": { "outputOnFailure": true, "verbosity": "default" }
+      "output": {
+        "outputOnFailure": true,
+        "verbosity": "default"
+      }
     },
     {
       "name": "host-clang",
       "configurePreset": "host-clang",
-      "output": { "outputOnFailure": true, "verbosity": "default" }
+      "output": {
+        "outputOnFailure": true,
+        "verbosity": "default"
+      }
+    },
+    {
+      "name": "host-coverage",
+      "configurePreset": "host-coverage",
+      "output": {
+        "outputOnFailure": true,
+        "verbosity": "default"
+      }
+    },
+    {
+      "name": "host-m32",
+      "configurePreset": "host-m32",
+      "output": {
+        "outputOnFailure": true,
+        "verbosity": "default"
+      }
     },
     {
       "name": "target",
       "configurePreset": "target",
       "description": "Flashes and runs each test binary on the board via tools/run_on_target.sh, one at a time",
-      "execution": { "jobs": 1, "timeout": 300 },
-      "output": { "outputOnFailure": true, "verbosity": "verbose" }
+      "execution": {
+        "jobs": 1,
+        "timeout": 300
+      },
+      "output": {
+        "outputOnFailure": true,
+        "verbosity": "verbose"
+      }
     },
     {
       "name": "target-dryrun",
       "configurePreset": "target-dryrun",
-      "output": { "outputOnFailure": true, "verbosity": "verbose" }
+      "output": {
+        "outputOnFailure": true,
+        "verbosity": "verbose"
+      }
     }
   ]
 }
