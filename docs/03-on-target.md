@@ -37,12 +37,19 @@ Settings that matter:
 
 - **Driver Enable:** tick only *SCI* (or *SCILIN*). Everything else off keeps the
   binary small and the start-up short.
-- **SCI:** 115200 baud, 8 data bits, no parity, 1 stop bit, TX enabled. The baud
-  divider HALCoGen writes depends on the VCLK you configured; leave the PLL/clock tree
-  at HALCoGen's defaults for the HDK unless your board differs.
-- **PINMUX:** route the SCI TX pin you actually have wired. On the TMS570LS31x HDK the
-  on-board USB serial port is on SCI1, which HALCoGen calls `scilinREG`; that is the
-  default `TMS570_UNITY_SCI`. Pass `-DTMS570_UNITY_SCI=sciREG` for SCI2.
+- **SCI:** 8 data bits, no parity, 1 stop bit, TX enabled, at whatever baud you
+  like - then set `TMS570_BAUD` to the same value when running (the default is
+  115200). HALCoGen writes the divider into `sciREG->BRS` based on the VCLK you
+  configured, so read it back rather than assuming:
+  `baud = VCLK / (16 x (BRS + 1))`.
+- **Which instance:** SCI1/LIN can be generated as **LIN** (`linREG`) or as **SCI**
+  (`scilinREG`), and SCI2 is always `sciREG`. `sciInit()` only configures the ones
+  generated as SCI, so `TMS570_UNITY_SCI` must name one of those - printing to a
+  module left in LIN mode produces nothing and then hangs in `sciIsTxReady()`. Confirm
+  with `grep -c scilinREG source/sci.c` in your HALCoGen output before blaming the
+  wiring. The default is `scilinREG`; pass `-DTMS570_UNITY_SCI=sciREG` for SCI2.
+- **PINMUX:** route the TX pin of the instance you chose, and check against your
+  board which one reaches the connector you are plugged into.
 - Leave **VFP enable**, **RAM initialisation (`_memInit_`)** and the default
   `sys_link.cmd` alone. The tests use `float`, and reading un-initialised ECC RAM is
   a data abort.
@@ -137,8 +144,14 @@ board *running*:
 - Mock-based tests (`test_temp_monitor.c`, `test_heater_task.c`) and the model test
   (`test_heater_ctrl.c`) are the ones that earn their keep here: pure logic, compiled
   big-endian, ILP32, packed enums, VFP.
-- Unity's float asserts work because HALCoGen's `_c_int00` enables the VFP. If your
-  start-up code does not, add `#define UNITY_EXCLUDE_FLOAT` to `unity_config.h`.
+- **HALCoGen's `_c_int00` does not enable the FPU.** It does core register init,
+  PBIST, ECC and memory init, and stops there; `_coreEnableVfp_()` is generated in
+  `sys_core.asm` but never called. The tests are built with
+  `--float_support=VFPv3D16`, so `unity_target_io.c` calls `_coreEnableVfp_()` itself
+  from `unity_target_start()` - which Unity invokes from `UnityBegin()`, before any
+  test body. Turn it off with `-DTMS570_ENABLE_VFP=OFF` if your start-up code already
+  does it; on a part with no FPU, also define `UNITY_EXCLUDE_FLOAT` in
+  `unity_config.h`.
 - Heap is 40 KB and stack 4 KB (`--heap_size=0xA000 --stack_size=0x1000` in the
   toolchain file). The heap matters: CMock `malloc`s a 32 KB pool for expectations
   (`CMOCK_MEM_SIZE`), so the CCS default of 2 KB links fine and then fails every

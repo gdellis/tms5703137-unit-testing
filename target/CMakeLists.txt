@@ -10,7 +10,14 @@ set(HALCOGEN_DIR "${CMAKE_SOURCE_DIR}/target/halcogen" CACHE PATH
     "HALCoGen project directory (contains include/ and source/)")
 
 set(TMS570_UNITY_SCI "scilinREG" CACHE STRING
-    "HALCoGen SCI instance Unity prints to (scilinREG or sciREG)")
+    "HALCoGen SCI instance Unity prints to (scilinREG or sciREG). Must be one the
+     generated sciInit() actually configures - a module left in LIN mode is not")
+
+option(TMS570_ENABLE_VFP
+    "Call _coreEnableVfp_() before the first test. HALCoGen's _c_int00 does not enable
+     the FPU, and the tests are built with --float_support=VFPv3D16. Turn off only if
+     your start-up code already enables it, or the part has no FPU"
+    ON)
 
 if(NOT EXISTS "${HALCOGEN_DIR}/source/sys_link.cmd")
     message(FATAL_ERROR
@@ -35,7 +42,9 @@ set_target_properties(tms570_bsp PROPERTIES C_EXTENSIONS ON)
 # --- Unity output over SCI ---------------------------------------------------------
 add_library(tms570_unity_io OBJECT unity_target_io.c)
 target_include_directories(tms570_unity_io PRIVATE "${HALCOGEN_DIR}/include")
-target_compile_definitions(tms570_unity_io PRIVATE UNITY_TARGET_SCI=${TMS570_UNITY_SCI})
+target_compile_definitions(tms570_unity_io PRIVATE
+    UNITY_TARGET_SCI=${TMS570_UNITY_SCI}
+    TMS570_ENABLE_VFP=$<BOOL:${TMS570_ENABLE_VFP}>)
 set_target_properties(tms570_unity_io PROPERTIES C_EXTENSIONS ON)
 
 # Make Unity itself read target/unity_config.h (ILP32 widths, output hooks).
