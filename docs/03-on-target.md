@@ -185,6 +185,7 @@ README):
 | `armcl` not found | `TI_CGT_ARM_ROOT` unset or pointing above `bin/` |
 | `HALCOGEN_DIR … is not a HALCoGen project` | generate into `target/halcogen/` (section 2) or pass `-DHALCOGEN_DIR` |
 | Link error about `.intvecs`, `_c_int00`, `.stack` | `sys_link.cmd` missing from the link, or HALCoGen sources not in the object library; check `cmake --build --preset target -- -v` |
+| `warning #10211-D: cannot resolve archive libc.a ... no input files have been encountered`, then `_c_int00 undefined` and `entry-point ... setting to 0` | `--library=libc.a` came *before* the object files. It is an index library and must be last: keep it in `CMAKE_C_STANDARD_LIBRARIES`, not in the linker flags. The link still "succeeds" with no run-time at all, so check the map, not the exit code |
 | Nothing on the serial port | wrong SCI instance (`TMS570_UNITY_SCI`), TX pin not muxed, baud vs. VCLK mismatch, adapter on RX instead of TX |
 | Output stops mid-run, `unity_target_finished` still 0 | a data abort (ESM, ECC, unaligned access): connect CCS and look at the `_dabort` handler |
 | Garbage characters | baud rate; HALCoGen computes the divider from the configured VCLK |

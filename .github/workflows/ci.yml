@@ -119,19 +119,29 @@ jobs:
       - name: Build
         run: cmake --build --preset target-ci -- -v
 
-      # Guards against a vacuously green job: every test must have produced a
-      # non-empty image whose map shows the vector table placed at address 0. That
-      # last part is what proves the board-support objects are linked in directly
-      # rather than sitting unreferenced in an archive.
+      # Guards against a vacuously green job. armcl links (with warnings only) even
+      # when nothing of the run-time is pulled in, so check the map, not the exit
+      # code:
+      #   .intvecs placed  - board-support objects really are linked in, which is why
+      #                      they are an OBJECT library and not an archive
+      #   rtsv7R4...lib    - libc.a resolved to the run-time matching this CPU, ABI,
+      #                      endianness and FPU
+      #   entry point != 0 - _c_int00 was found, so the image can actually boot
       - name: Check the images are real
         run: |
           set -eu
           count=0
           for out in build/target-ci/test/*.out; do
-            map="build/target-ci/$(basename "${out%.out}").map"
-            test -s "$out" || { echo "empty image: $out"; exit 1; }
-            grep -q '\.intvecs' "$map" || { echo "no .intvecs placed in $map"; exit 1; }
-            grep -q '_c_int00' "$map" || { echo "no entry point in $map"; exit 1; }
+            name=$(basename "${out%.out}")
+            map="build/target-ci/$name.map"
+            test -s "$out" || { echo "$name: empty image"; exit 1; }
+            grep -q '\.intvecs' "$map" || { echo "$name: no .intvecs placed"; exit 1; }
+            grep -qi 'rtsv7R4[^ ]*\.lib' "$map" || { echo "$name: no TI run-time library linked"; exit 1; }
+            entry=$(grep -i -m1 'ENTRY POINT SYMBOL' "$map" | grep -oiE '[0-9a-f]{8}' | tail -1)
+            case "${entry:-}" in
+              ''|00000000) echo "$name: entry point is unset or 0 (_c_int00 not linked)"; exit 1 ;;
+            esac
+            echo "$name: entry point 0x$entry"
             count=$((count + 1))
           done
           test "$count" -eq 5 || { echo "expected 5 images, found $count"; exit 1; }
