@@ -1,6 +1,10 @@
 {
   "version": 3,
-  "cmakeMinimumRequired": { "major": 3, "minor": 21, "patch": 0 },
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
   "configurePresets": [
     {
       "name": "host",
@@ -25,6 +29,26 @@
       }
     },
     {
+      "name": "host-coverage",
+      "displayName": "Host (gcc) with coverage",
+      "description": "gcc --coverage on the code under test; 'cmake --build --preset host-coverage-report' runs the tests and writes build/host-coverage/coverage/ (HTML + Cobertura) with gcovr",
+      "inherits": "host",
+      "binaryDir": "${sourceDir}/build/host-coverage",
+      "cacheVariables": {
+        "COVERAGE": "ON"
+      }
+    },
+    {
+      "name": "host-m32",
+      "displayName": "Host (gcc, -m32 / ILP32)",
+      "description": "Same tests with a 32-bit data model (long and pointers are 32-bit, as on the TMS570). Needs gcc-multilib",
+      "inherits": "host",
+      "binaryDir": "${sourceDir}/build/host-m32",
+      "cacheVariables": {
+        "CMAKE_C_FLAGS": "-m32"
+      }
+    },
+    {
       "name": "target",
       "displayName": "TMS570LS3137 (TI armcl, runs on the board)",
       "description": "Cross-compile the same tests with the TI ARM compiler; Unity output over SCI. Needs TI_CGT_ARM_ROOT and a HALCoGen project in target/halcogen (see docs/03-on-target.md)",
@@ -40,14 +64,25 @@
       }
     },
     {
+      "name": "target-ci",
+      "displayName": "TMS570LS3137 (TI armcl, stub board support, link only)",
+      "description": "The real TI compiler against tools/halcogen-stub: compiles and links every test binary for the target without HALCoGen or a board. Output must not be flashed. Needs TI_CGT_ARM_ROOT (tools/ci/install-ti-cgt.sh). Used by CI",
+      "inherits": "target",
+      "binaryDir": "${sourceDir}/build/target-ci",
+      "cacheVariables": {
+        "HALCOGEN_DIR": "${sourceDir}/tools/halcogen-stub",
+        "CMAKE_CROSSCOMPILING_EMULATOR": "${sourceDir}/tools/dryrun/run_on_target"
+      }
+    },
+    {
       "name": "target-dryrun",
       "displayName": "TMS570LS3137 dry run (no TI compiler)",
-      "description": "Exercises the whole cross-build (toolchain file, target/CMakeLists.txt, link lines, CTest wiring) with stand-in armcl/armar scripts and an empty HALCoGen stub. Produces empty .out files. Used by CI",
+      "description": "Exercises the whole cross-build (toolchain file, target/CMakeLists.txt, link lines, CTest wiring) with stand-in armcl/armar scripts and the stub HALCoGen project. Produces empty .out files. Used by CI",
       "inherits": "target",
       "binaryDir": "${sourceDir}/build/target-dryrun",
       "cacheVariables": {
         "TI_CGT_ARM_ROOT": "${sourceDir}/tools/dryrun",
-        "HALCOGEN_DIR": "${sourceDir}/tools/dryrun/halcogen-stub",
+        "HALCOGEN_DIR": "${sourceDir}/tools/halcogen-stub",
         "CMAKE_CROSSCOMPILING_EMULATOR": "${sourceDir}/tools/dryrun/run_on_target",
         "CMAKE_C_COMPILER": "${sourceDir}/tools/dryrun/armcl",
         "CMAKE_ASM_COMPILER": "${sourceDir}/tools/dryrun/armcl",
@@ -64,33 +99,103 @@
     }
   ],
   "buildPresets": [
-    { "name": "host",          "configurePreset": "host" },
-    { "name": "host-clang",    "configurePreset": "host-clang" },
-    { "name": "target",        "configurePreset": "target" },
-    { "name": "target-dryrun", "configurePreset": "target-dryrun" }
+    {
+      "name": "host",
+      "configurePreset": "host"
+    },
+    {
+      "name": "host-clang",
+      "configurePreset": "host-clang"
+    },
+    {
+      "name": "host-coverage",
+      "configurePreset": "host-coverage"
+    },
+    {
+      "name": "host-coverage-report",
+      "configurePreset": "host-coverage",
+      "targets": [
+        "coverage"
+      ]
+    },
+    {
+      "name": "host-m32",
+      "configurePreset": "host-m32"
+    },
+    {
+      "name": "target",
+      "configurePreset": "target"
+    },
+    {
+      "name": "target-ci",
+      "configurePreset": "target-ci"
+    },
+    {
+      "name": "target-dryrun",
+      "configurePreset": "target-dryrun"
+    }
   ],
   "testPresets": [
     {
       "name": "host",
       "configurePreset": "host",
-      "output": { "outputOnFailure": true, "verbosity": "default" }
+      "output": {
+        "outputOnFailure": true,
+        "verbosity": "default"
+      }
     },
     {
       "name": "host-clang",
       "configurePreset": "host-clang",
-      "output": { "outputOnFailure": true, "verbosity": "default" }
+      "output": {
+        "outputOnFailure": true,
+        "verbosity": "default"
+      }
+    },
+    {
+      "name": "host-coverage",
+      "configurePreset": "host-coverage",
+      "output": {
+        "outputOnFailure": true,
+        "verbosity": "default"
+      }
+    },
+    {
+      "name": "host-m32",
+      "configurePreset": "host-m32",
+      "output": {
+        "outputOnFailure": true,
+        "verbosity": "default"
+      }
     },
     {
       "name": "target",
       "configurePreset": "target",
       "description": "Flashes and runs each test binary on the board via tools/run_on_target.sh, one at a time",
-      "execution": { "jobs": 1, "timeout": 300 },
-      "output": { "outputOnFailure": true, "verbosity": "verbose" }
+      "execution": {
+        "jobs": 1,
+        "timeout": 300
+      },
+      "output": {
+        "outputOnFailure": true,
+        "verbosity": "verbose"
+      }
+    },
+    {
+      "name": "target-ci",
+      "configurePreset": "target-ci",
+      "output": {
+        "outputOnFailure": true,
+        "verbosity": "verbose"
+      }
     },
     {
       "name": "target-dryrun",
       "configurePreset": "target-dryrun",
-      "output": { "outputOnFailure": true, "verbosity": "verbose" }
+      "output": {
+        "outputOnFailure": true,
+        "verbosity": "verbose"
+      }
     }
   ]
 }

@@ -31,19 +31,43 @@ find_program(CMAKE_AR           armar HINTS "${TI_CGT_ARM_ROOT}/bin" REQUIRED)
 # Cortex-R4F, ARM (32-bit) instruction state, VFPv3-D16, EABI, big-endian (BE-32).
 set(TMS570_CPU_FLAGS "-mv7R4 --code_state=32 --float_support=VFPv3D16 --abi=eabi --endian=big")
 
+# armcl finds its own runtime headers (stddef.h, setjmp.h, stdint.h, ...) through the
+# C_DIR / TI_ARM_C_DIR environment variables, which CCS sets and a plain shell does
+# not. Put the compiler's own include directory on the search path explicitly so the
+# build does not depend on the environment it is launched from.
+set(TI_CGT_ARM_INCLUDE "--include_path=${TI_CGT_ARM_ROOT}/include")
+
 # --enum_type=packed is the HALCoGen/CCS default for this device. It makes enums as
 # small as their values allow, so sizeof(enum) differs from the host - one of the
 # things an on-target run is there to catch.
 set(CMAKE_C_FLAGS_INIT
-    "${TMS570_CPU_FLAGS} --enum_type=packed --diag_warning=225 --diag_wrap=off --display_error_number")
+    "${TMS570_CPU_FLAGS} ${TI_CGT_ARM_INCLUDE} --enum_type=packed --diag_warning=225 --diag_wrap=off --display_error_number")
 set(CMAKE_ASM_FLAGS_INIT
-    "${TMS570_CPU_FLAGS} --diag_wrap=off --display_error_number")
+    "${TMS570_CPU_FLAGS} ${TI_CGT_ARM_INCLUDE} --diag_wrap=off --display_error_number")
 
-# libc.a is the index that lets the linker pick the matching run-time library
-# (rtsv7R4_A_be_v3D16_eabi.lib). The HALCoGen linker command file (sys_link.cmd) is
-# added per executable by target/CMakeLists.txt.
+# libc.a is an *index* library: the linker reads the build attributes (endianness,
+# ABI, float support) of the object files it has already seen and picks the matching
+# run-time library, here rtsv7R4_A_be_v3D16_eabi.lib. It therefore has to come AFTER
+# the objects on the command line. CMake's TI link rule is
+#
+#   <compiler> <FLAGS> --run_linker ... <LINK_FLAGS> <OBJECTS> <LINK_LIBRARIES>
+#
+# so putting it in the linker flags (where --search_path belongs, that one being
+# position-independent) makes the linker report
+#
+#   warning #10211-D: cannot resolve archive libc.a to a compatible library,
+#                     as no input files have been encountered
+#
+# and then silently link no run-time at all: _c_int00 stays undefined, the entry
+# point is set to 0 and the image cannot boot. CMAKE_C_STANDARD_LIBRARIES lands at
+# the very end of the link line, which is where an index library has to be.
+set(CMAKE_C_STANDARD_LIBRARIES_INIT "--library=libc.a")
+
+# Heap: CMock allocates its expectation pool with malloc (CMOCK_MEM_SIZE, 32 KB by
+# default), so the CCS default of 0x800 would make every mock-based test fail at
+# run time with an allocation error. 40 KB heap + 4 KB stack out of 256 KB RAM.
 set(CMAKE_EXE_LINKER_FLAGS_INIT
-    "--search_path=${TI_CGT_ARM_ROOT}/lib --library=libc.a --reread_libs --rom_model --warn_sections --heap_size=0x800 --stack_size=0x800")
+    "--search_path=${TI_CGT_ARM_ROOT}/lib --reread_libs --rom_model --warn_sections --heap_size=0xA000 --stack_size=0x1000")
 
 # CMake's compiler sanity check would otherwise try to link an executable without a
 # linker command file.

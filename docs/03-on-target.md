@@ -70,7 +70,10 @@ How it is wired:
 - `cmake/toolchain-ti-armcl.cmake` picks `armcl`/`armar` and the CPU flags
   (`-mv7R4 --code_state=32 --float_support=VFPv3D16 --abi=eabi --endian=big`,
   `--enum_type=packed`). CMake's own TI compiler support provides everything else
-  (`--compile_only`, `--run_linker`, `--include_path=`, `--c11`, depfiles).
+  (`--compile_only`, `--run_linker`, `--include_path=`, `--c11`, depfiles). It also
+  puts `$TI_CGT_ARM_ROOT/include` and `/lib` on the search paths: armcl locates its
+  own `stddef.h`, `setjmp.h` and run-time libraries through `C_DIR`/`TI_ARM_C_DIR`,
+  which CCS sets and a plain shell or CI runner does not.
 - `target/CMakeLists.txt` compiles the HALCoGen sources (`C_EXTENSIONS ON` →
   `--relaxed_ansi`; the rest of the tree is `--strict_ansi`) as an **object** library,
   so the vector table and start-up code are always linked even though no symbol
@@ -136,21 +139,47 @@ board *running*:
   big-endian, ILP32, packed enums, VFP.
 - Unity's float asserts work because HALCoGen's `_c_int00` enables the VFP. If your
   start-up code does not, add `#define UNITY_EXCLUDE_FLOAT` to `unity_config.h`.
-- Stack is 2 KB (`--stack_size=0x800`, the CCS default). Unity itself needs little;
-  raise it in the toolchain file if a test recurses.
+- Heap is 40 KB and stack 4 KB (`--heap_size=0xA000 --stack_size=0x1000` in the
+  toolchain file). The heap matters: CMock `malloc`s a 32 KB pool for expectations
+  (`CMOCK_MEM_SIZE`), so the CCS default of 2 KB links fine and then fails every
+  mock-based test at run time. Shrink `CMOCK_MEM_SIZE` (a compile definition on the
+  `cmock` target) rather than the heap if RAM is tight.
 - Anything that fails only on the target is the finding you ran this for. Typical:
   a `union` used for byte access, `sizeof` of an enum baked into a frame layout,
   `long` assumed 64-bit, an `int` shift past 31.
 
-## 6. Dry run without the toolchain (CI)
+## 6. Building for the target in CI
 
-`cmake --preset target-dryrun` exercises the entire cross-build with a stand-in
-`armcl`/`armar` (`tools/dryrun/`) and an empty HALCoGen stub. The stand-ins accept the
-real command lines and write empty output files, so the toolchain file,
-`target/CMakeLists.txt`, the link lines and the CTest/emulator wiring are checked on
-every commit without the TI tools. `ctest --preset target-dryrun` then "runs" each
-`.out` through a stub emulator that only prints what it would flash. It proves the
-plumbing, never the code. CI runs it as the `Target build dry run` job.
+Two presets build against `tools/halcogen-stub/`, a stand-in HALCoGen project that
+compiles and links but must never be flashed (no-op SCI, no start-up code; see its
+README):
+
+- **`target-ci` - the real compiler.** `tools/ci/install-ti-cgt.sh` downloads TI's
+  Linux installer for ARM CGT 20.2.7.LTS and installs it unattended
+  (`--mode unattended --prefix …`); the `Target build` CI job caches the result by
+  version and exports `TI_CGT_ARM_ROOT`. The script also pre-builds the run-time
+  library variant this project links (`rtsv7R4_A_be_v3D16_eabi.lib`): TI ships the
+  run-time as source and the linker otherwise builds it on first use, which costs
+  minutes on every clean build. Then `cmake --preset target-ci` compiles and
+  links every test binary for the Cortex-R4F: big-endian, ILP32, `--c11 --strict_ansi`,
+  packed enums, `--emit_warnings_as_errors` on the hand-written code. The `.out` and
+  `.map` files are uploaded as a build artifact. This is the per-commit check that the
+  tree is *acceptable to the TI toolchain*; whether it *behaves* on the board is
+  section 4.
+
+  ```sh
+  tools/ci/install-ti-cgt.sh ~/ti/ti-cgt-arm_20.2.7.LTS    # once
+  export TI_CGT_ARM_ROOT=~/ti/ti-cgt-arm_20.2.7.LTS
+  cmake --preset target-ci && cmake --build --preset target-ci
+  ```
+
+- **`target-dryrun` - no compiler at all.** Stand-in `armcl`/`armar` scripts
+  (`tools/dryrun/`) accept the real command lines and write empty outputs, so the
+  toolchain file, `target/CMakeLists.txt`, the link lines and the CTest/emulator wiring
+  are checked even on a machine that cannot download the TI tools. `ctest --preset
+  target-dryrun` then "runs" each `.out` through a stub emulator that only prints what
+  it would flash. It proves the plumbing, never the code. CI runs it as the
+  `Target build dry run` job.
 
 ## 7. Troubleshooting
 
@@ -159,6 +188,7 @@ plumbing, never the code. CI runs it as the `Target build dry run` job.
 | `armcl` not found | `TI_CGT_ARM_ROOT` unset or pointing above `bin/` |
 | `HALCOGEN_DIR … is not a HALCoGen project` | generate into `target/halcogen/` (section 2) or pass `-DHALCOGEN_DIR` |
 | Link error about `.intvecs`, `_c_int00`, `.stack` | `sys_link.cmd` missing from the link, or HALCoGen sources not in the object library; check `cmake --build --preset target -- -v` |
+| `warning #10211-D: cannot resolve archive libc.a ... no input files have been encountered`, then `_c_int00 undefined` and `entry-point ... setting to 0` | `--library=libc.a` came *before* the object files. It is an index library and must be last: keep it in `CMAKE_C_STANDARD_LIBRARIES`, not in the linker flags. The link still "succeeds" with no run-time at all, so check the map, not the exit code |
 | Nothing on the serial port | wrong SCI instance (`TMS570_UNITY_SCI`), TX pin not muxed, baud vs. VCLK mismatch, adapter on RX instead of TX |
 | Output stops mid-run, `unity_target_finished` still 0 | a data abort (ESM, ECC, unaligned access): connect CCS and look at the `_dabort` handler |
 | Garbage characters | baud rate; HALCoGen computes the divider from the configured VCLK |

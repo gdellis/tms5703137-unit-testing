@@ -106,16 +106,19 @@ Pass 3: **on-target execution** of the same binaries with `armcl` + HALCoGen, ou
 over SCI, CTest-driven flashing, and a dry-run preset for CI - see
 [03-on-target.md](03-on-target.md).
 
-Follow-up: coverage.
+Pass 4: **coverage** (gcc `--coverage` on the code under test, gcovr HTML/Cobertura,
+optional gate) and a **`-m32` preset** for the ILP32 check on the host - see
+[02-adopting-in-your-project.md](02-adopting-in-your-project.md) sections 8 and 9.
+The first-pass roadmap is complete.
 
 ## Pitfalls to design around from day one
 
 - **Endianness.** Never rely on host results for byte-order-sensitive code (union
   punning, packing CAN/SCI frames, checksums over raw memory). Write those routines with
   explicit shifts/masks, and schedule them for the on-target run.
-- **Integer widths.** Use `<stdint.h>` types everywhere. Optionally build the host
-  tests with `-m32` (gcc-multilib) to get an ILP32 data model that matches the target;
-  the on-target run (docs/03) is the definitive check.
+- **Integer widths.** Use `<stdint.h>` types everywhere. The `host-m32` preset
+  (gcc-multilib) gives an ILP32 data model that matches the target; the on-target run
+  (docs/03) is the definitive check.
 - **`volatile` register access.** Keep it inside the driver layer; that is the layer
   you test with the overlay trick, and its callers with mocks.
 - **TI intrinsics and pragmas.** `_disable_IRQ_interrupt_()`, `_enable_interrupt_()`,

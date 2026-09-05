@@ -21,6 +21,10 @@ if(CMAKE_CROSSCOMPILING)
     enable_language(ASM)
 endif()
 
+# Optional gcov/gcovr instrumentation of the code under test (host-coverage preset).
+# Defines coverage_instrument(); a no-op unless COVERAGE=ON.
+include(cmake/Coverage.cmake)
+
 # The firmware sources are built as a plain library *without* UNIT_TEST so that the
 # real register addresses are compiled at least once per build. This is a compile
 # smoke test only; it is never executed on the host.

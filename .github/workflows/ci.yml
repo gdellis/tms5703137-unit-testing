@@ -30,6 +30,134 @@ jobs:
       - name: Test
         run: ctest --preset ${{ matrix.preset }}
 
+  coverage:
+    name: Coverage (gcc + gcovr)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cmake ninja-build ruby gcc
+          pip install gcovr
+
+      - name: Configure
+        run: cmake --preset host-coverage
+
+      - name: Build
+        run: cmake --build --preset host-coverage
+
+      - name: Test and report
+        run: cmake --build --preset host-coverage-report
+
+      - name: Summary
+        if: always()
+        run: |
+          echo '### Line coverage of src/' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat build/host-coverage/coverage/summary.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: build/host-coverage/coverage/
+
+  host-m32:
+    name: Host unit tests (gcc -m32, ILP32)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cmake ninja-build ruby gcc gcc-multilib
+
+      - name: Configure
+        run: cmake --preset host-m32
+
+      - name: Build
+        run: cmake --build --preset host-m32
+
+      - name: Test
+        run: ctest --preset host-m32
+
+  target-build:
+    name: Target build (TI armcl 20.2.7.LTS, stub board support)
+    runs-on: ubuntu-latest
+    env:
+      TI_CGT_ARM_VERSION: 20.2.7.LTS
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cmake ninja-build ruby
+
+      # ~100 MB installer; cached across runs by version.
+      - name: Cache TI ARM CGT
+        uses: actions/cache@v4
+        with:
+          path: ~/ti/ti-cgt-arm_${{ env.TI_CGT_ARM_VERSION }}
+          # The suffix must change whenever what we store changes; -rts3 is the
+          # first install whose run-time library is pre-built by mklib rather than
+          # left for the linker to build on first use.
+          key: ti-cgt-arm-${{ env.TI_CGT_ARM_VERSION }}-linux-x64-rts3
+
+      # Downloads + installs unattended on a cache miss, no-op on a hit; either way it
+      # exports TI_CGT_ARM_ROOT for the following steps.
+      - name: Install TI ARM CGT
+        run: tools/ci/install-ti-cgt.sh ~/ti/ti-cgt-arm_${{ env.TI_CGT_ARM_VERSION }}
+
+      # Real armcl, stub HALCoGen (tools/halcogen-stub): every test binary is compiled
+      # and linked for the Cortex-R4F. Nothing runs; the .out files must not be flashed.
+      - name: Configure
+        run: cmake --preset target-ci
+
+      - name: Build
+        run: cmake --build --preset target-ci -- -v
+
+      # Guards against a vacuously green job. armcl links (with warnings only) even
+      # when nothing of the run-time is pulled in, so check the map, not the exit
+      # code:
+      #   .intvecs placed  - board-support objects really are linked in, which is why
+      #                      they are an OBJECT library and not an archive
+      #   rtsv7R4...lib    - libc.a resolved to the run-time matching this CPU, ABI,
+      #                      endianness and FPU
+      #   entry point != 0 - _c_int00 was found, so the image can actually boot
+      - name: Check the images are real
+        run: |
+          set -eu
+          count=0
+          for out in build/target-ci/test/*.out; do
+            name=$(basename "${out%.out}")
+            map="build/target-ci/$name.map"
+            test -s "$out" || { echo "$name: empty image"; exit 1; }
+            grep -q '\.intvecs' "$map" || { echo "$name: no .intvecs placed"; exit 1; }
+            grep -qi 'rtsv7R4[^ ]*\.lib' "$map" || { echo "$name: no TI run-time library linked"; exit 1; }
+            entry=$(grep -i -m1 'ENTRY POINT SYMBOL' "$map" | grep -oiE '[0-9a-f]{8}' | tail -1)
+            case "${entry:-}" in
+              ''|00000000) echo "$name: entry point is unset or 0 (_c_int00 not linked)"; exit 1 ;;
+            esac
+            echo "$name: entry point 0x$entry"
+            count=$((count + 1))
+          done
+          test "$count" -eq 5 || { echo "expected 5 images, found $count"; exit 1; }
+          echo "$count target images linked and checked"
+
+      - name: Upload test images and map files
+        uses: actions/upload-artifact@v4
+        with:
+          name: tms570-test-images
+          path: |
+            build/target-ci/test/*.out
+            build/target-ci/*.map
+
   target-dryrun:
     name: Target build dry run (no TI compiler)
     runs-on: ubuntu-latest

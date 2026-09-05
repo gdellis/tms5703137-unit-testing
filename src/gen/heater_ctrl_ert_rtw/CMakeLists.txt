@@ -15,3 +15,6 @@ add_library(heater_ctrl_model STATIC
 target_include_directories(heater_ctrl_model PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_compile_options(heater_ctrl_model PRIVATE $<$<C_COMPILER_ID:GNU,Clang>:-Wall;-Wextra>)
+
+# The model test links this library as shipped, so coverage has to be compiled in here.
+coverage_instrument(heater_ctrl_model)

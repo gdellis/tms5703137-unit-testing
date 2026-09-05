@@ -4,7 +4,7 @@
 # command lines CMake's TI compiler rules generate and produces empty output files,
 # so the whole cross-build (toolchain file, target/CMakeLists.txt, link lines, CTest
 # wiring) can be exercised on a machine - or a CI runner - without the TI toolchain.
-# It compiles nothing.
+# It compiles nothing. The 'target-ci' preset does the same with the real compiler.
 set -eu
 
 out=""

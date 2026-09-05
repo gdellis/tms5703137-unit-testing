@@ -146,6 +146,15 @@ void test_overtemp_glitch_shorter_than_debounce_is_ignored(void)
     TEST_ASSERT_FALSE(heater_ctrl_Y.fault);
 }
 
+void test_overtemp_counter_saturates_without_wrapping(void)
+{
+    /* Found by the coverage report: the "already at debounce" side of the counter
+     * guard. A long over-temperature must keep the fault, not wrap the counter. */
+    step_n(T_OVER, true, 300U);          /* uint8 counter: > 255 steps */
+    TEST_ASSERT_TRUE(heater_ctrl_Y.fault);
+    TEST_ASSERT_EQUAL_UINT8(heater_ctrl_P.FaultDebounce_steps, heater_ctrl_DW.OverTemp_count);
+}
+
 void test_fault_forces_heater_off_even_when_cold(void)
 {
     step_n(T_OVER, true, 3U);

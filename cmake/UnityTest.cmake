@@ -75,6 +75,12 @@ function(add_unity_test NAME)
         target_link_libraries(${NAME} PRIVATE tms570_target_runtime)
     endif()
 
+    # host-coverage preset: instrument, and make 'coverage' build this test first.
+    coverage_instrument(${NAME})
+    if(TARGET coverage)
+        add_dependencies(coverage ${NAME})
+    endif()
+
     # When cross-compiling, CTest prefixes the command with CMAKE_CROSSCOMPILING_EMULATOR
     # (tools/run_on_target.sh in the 'target' preset), which flashes and captures.
     add_test(NAME ${NAME} COMMAND ${NAME})
