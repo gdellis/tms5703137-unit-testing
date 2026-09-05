@@ -60,7 +60,8 @@ fi
 rts=${TI_CGT_ARM_RTS-rtsv7R4_A_be_v3D16_eabi.lib}
 if [[ -n $rts && ! -f $root/lib/$rts && -x $root/lib/mklib ]]; then
     echo "Pre-building run-time library $rts"
-    if (cd "$root/lib" && ./mklib --pattern="$rts" --index="$root/lib/libc.a"); then
+    # mklib shells out to armcl by name, so it needs the compiler on PATH.
+    if (cd "$root/lib" && PATH="$root/bin:$PATH" ./mklib --pattern="$rts" --index="$root/lib/libc.a"); then
         echo "Pre-built $rts"
     else
         echo "warning: could not pre-build $rts; the linker will build it on first use" >&2
