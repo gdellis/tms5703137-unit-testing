@@ -1,5 +1,7 @@
 # TMS570LS3137 unit-testing sandbox
 
+[![CI](https://github.com/gdellis/tms5703137-unit-testing/actions/workflows/ci.yml/badge.svg)](https://github.com/gdellis/tms5703137-unit-testing/actions/workflows/ci.yml)
+
 A small, runnable template showing how to unit-test TMS570LS3137 firmware **on the
 host PC** with [Unity](https://www.throwtheswitch.org/unity) +
 [CMock](https://www.throwtheswitch.org/cmock) driven by CMake/CTest. No board, no
