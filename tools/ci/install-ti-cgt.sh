@@ -12,6 +12,8 @@
 #   TI_CGT_ARM_VERSION   default 20.2.7.LTS
 #   TI_CGT_ARM_URL       installer URL (default: TI's download server for that version)
 #   TI_CGT_ARM_SHA256    if set, the downloaded installer must match it
+#   TI_CGT_ARM_RTS       run-time library variant to pre-build; must match the flags in
+#                        cmake/toolchain-ti-armcl.cmake. Empty disables pre-building.
 #
 # The installer is a BitRock package; "--mode unattended" needs no display and no input.
 set -euo pipefail
@@ -48,6 +50,21 @@ else
     "$tmp/installer.bin" --mode unattended --unattendedmodeui none --prefix "$prefix"
 
     root=$(locate_root) || { echo "install-ti-cgt.sh: no bin/armcl under $prefix after install" >&2; exit 1; }
+fi
+
+# TI ships the run-time libraries as source and the linker builds the variant a
+# project needs on first use ("warning #10366-D: automatic library build"), which
+# takes minutes. Build it here instead, while the install is still being populated,
+# so it lands in the CI cache and no later build pays for it. Best-effort: if this
+# does not work the linker still builds the library itself.
+rts=${TI_CGT_ARM_RTS-rtsv7R4_A_be_v3D16_eabi.lib}
+if [[ -n $rts && ! -f $root/lib/$rts && -x $root/lib/mklib ]]; then
+    echo "Pre-building run-time library $rts"
+    if (cd "$root/lib" && ./mklib --pattern="$rts" --index="$root/lib/libc.a"); then
+        echo "Pre-built $rts"
+    else
+        echo "warning: could not pre-build $rts; the linker will build it on first use" >&2
+    fi
 fi
 
 echo "armcl: $("$root/bin/armcl" --compiler_revision 2>/dev/null | head -n 1)"

@@ -104,7 +104,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/ti/ti-cgt-arm_${{ env.TI_CGT_ARM_VERSION }}
-          key: ti-cgt-arm-${{ env.TI_CGT_ARM_VERSION }}-linux-x64
+          # -rts2: the key must change when what we store changes, and the install
+          # now carries a pre-built run-time library the earlier cache lacks.
+          key: ti-cgt-arm-${{ env.TI_CGT_ARM_VERSION }}-linux-x64-rts2
 
       # Downloads + installs unattended on a cache miss, no-op on a hit; either way it
       # exports TI_CGT_ARM_ROOT for the following steps.

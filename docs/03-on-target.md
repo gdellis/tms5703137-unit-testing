@@ -157,7 +157,10 @@ README):
 - **`target-ci` - the real compiler.** `tools/ci/install-ti-cgt.sh` downloads TI's
   Linux installer for ARM CGT 20.2.7.LTS and installs it unattended
   (`--mode unattended --prefix …`); the `Target build` CI job caches the result by
-  version and exports `TI_CGT_ARM_ROOT`. Then `cmake --preset target-ci` compiles and
+  version and exports `TI_CGT_ARM_ROOT`. The script also pre-builds the run-time
+  library variant this project links (`rtsv7R4_A_be_v3D16_eabi.lib`): TI ships the
+  run-time as source and the linker otherwise builds it on first use, which costs
+  minutes on every clean build. Then `cmake --preset target-ci` compiles and
   links every test binary for the Cortex-R4F: big-endian, ILP32, `--c11 --strict_ansi`,
   packed enums, `--emit_warnings_as_errors` on the hand-written code. The `.out` and
   `.map` files are uploaded as a build artifact. This is the per-commit check that the
