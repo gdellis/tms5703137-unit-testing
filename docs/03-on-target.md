@@ -136,21 +136,44 @@ board *running*:
   big-endian, ILP32, packed enums, VFP.
 - Unity's float asserts work because HALCoGen's `_c_int00` enables the VFP. If your
   start-up code does not, add `#define UNITY_EXCLUDE_FLOAT` to `unity_config.h`.
-- Stack is 2 KB (`--stack_size=0x800`, the CCS default). Unity itself needs little;
-  raise it in the toolchain file if a test recurses.
+- Heap is 40 KB and stack 4 KB (`--heap_size=0xA000 --stack_size=0x1000` in the
+  toolchain file). The heap matters: CMock `malloc`s a 32 KB pool for expectations
+  (`CMOCK_MEM_SIZE`), so the CCS default of 2 KB links fine and then fails every
+  mock-based test at run time. Shrink `CMOCK_MEM_SIZE` (a compile definition on the
+  `cmock` target) rather than the heap if RAM is tight.
 - Anything that fails only on the target is the finding you ran this for. Typical:
   a `union` used for byte access, `sizeof` of an enum baked into a frame layout,
   `long` assumed 64-bit, an `int` shift past 31.
 
-## 6. Dry run without the toolchain (CI)
+## 6. Building for the target in CI
 
-`cmake --preset target-dryrun` exercises the entire cross-build with a stand-in
-`armcl`/`armar` (`tools/dryrun/`) and an empty HALCoGen stub. The stand-ins accept the
-real command lines and write empty output files, so the toolchain file,
-`target/CMakeLists.txt`, the link lines and the CTest/emulator wiring are checked on
-every commit without the TI tools. `ctest --preset target-dryrun` then "runs" each
-`.out` through a stub emulator that only prints what it would flash. It proves the
-plumbing, never the code. CI runs it as the `Target build dry run` job.
+Two presets build against `tools/halcogen-stub/`, a stand-in HALCoGen project that
+compiles and links but must never be flashed (no-op SCI, no start-up code; see its
+README):
+
+- **`target-ci` - the real compiler.** `tools/ci/install-ti-cgt.sh` downloads TI's
+  Linux installer for ARM CGT 20.2.7.LTS and installs it unattended
+  (`--mode unattended --prefix …`); the `Target build` CI job caches the result by
+  version and exports `TI_CGT_ARM_ROOT`. Then `cmake --preset target-ci` compiles and
+  links every test binary for the Cortex-R4F: big-endian, ILP32, `--c11 --strict_ansi`,
+  packed enums, `--emit_warnings_as_errors` on the hand-written code. The `.out` and
+  `.map` files are uploaded as a build artifact. This is the per-commit check that the
+  tree is *acceptable to the TI toolchain*; whether it *behaves* on the board is
+  section 4.
+
+  ```sh
+  tools/ci/install-ti-cgt.sh ~/ti/ti-cgt-arm_20.2.7.LTS    # once
+  export TI_CGT_ARM_ROOT=~/ti/ti-cgt-arm_20.2.7.LTS
+  cmake --preset target-ci && cmake --build --preset target-ci
+  ```
+
+- **`target-dryrun` - no compiler at all.** Stand-in `armcl`/`armar` scripts
+  (`tools/dryrun/`) accept the real command lines and write empty outputs, so the
+  toolchain file, `target/CMakeLists.txt`, the link lines and the CTest/emulator wiring
+  are checked even on a machine that cannot download the TI tools. `ctest --preset
+  target-dryrun` then "runs" each `.out` through a stub emulator that only prints what
+  it would flash. It proves the plumbing, never the code. CI runs it as the
+  `Target build dry run` job.
 
 ## 7. Troubleshooting
 

@@ -209,6 +209,7 @@ suite stays the everyday gate.
 | Host unit tests (gcc, clang) | `host`, `host-clang` | the per-commit gate; two compilers keep the code portable |
 | Host unit tests (gcc -m32) | `host-m32` | ILP32 assumptions (`long`, pointer width) that hide on LP64 |
 | Coverage | `host-coverage` | what the suite does not exercise; HTML report as a build artifact, summary on the job page |
+| Target build | `target-ci` | the whole tree compiled and linked by the real TI compiler (downloaded and cached by the job) against a stub board-support package |
 | Target build dry run | `target-dryrun` | the cross-build plumbing, without the TI tools |
 
 Copy it verbatim. The on-target run (docs/03) is not in CI unless a board is.

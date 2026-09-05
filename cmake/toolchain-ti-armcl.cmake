@@ -42,8 +42,12 @@ set(CMAKE_ASM_FLAGS_INIT
 # libc.a is the index that lets the linker pick the matching run-time library
 # (rtsv7R4_A_be_v3D16_eabi.lib). The HALCoGen linker command file (sys_link.cmd) is
 # added per executable by target/CMakeLists.txt.
+#
+# Heap: CMock allocates its expectation pool with malloc (CMOCK_MEM_SIZE, 32 KB by
+# default), so the CCS default of 0x800 would make every mock-based test fail at
+# run time with an allocation error. 40 KB heap + 4 KB stack out of 256 KB RAM.
 set(CMAKE_EXE_LINKER_FLAGS_INIT
-    "--search_path=${TI_CGT_ARM_ROOT}/lib --library=libc.a --reread_libs --rom_model --warn_sections --heap_size=0x800 --stack_size=0x800")
+    "--search_path=${TI_CGT_ARM_ROOT}/lib --library=libc.a --reread_libs --rom_model --warn_sections --heap_size=0xA000 --stack_size=0x1000")
 
 # CMake's compiler sanity check would otherwise try to link an executable without a
 # linker command file.

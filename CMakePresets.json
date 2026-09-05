@@ -64,14 +64,25 @@
       }
     },
     {
+      "name": "target-ci",
+      "displayName": "TMS570LS3137 (TI armcl, stub board support, link only)",
+      "description": "The real TI compiler against tools/halcogen-stub: compiles and links every test binary for the target without HALCoGen or a board. Output must not be flashed. Needs TI_CGT_ARM_ROOT (tools/ci/install-ti-cgt.sh). Used by CI",
+      "inherits": "target",
+      "binaryDir": "${sourceDir}/build/target-ci",
+      "cacheVariables": {
+        "HALCOGEN_DIR": "${sourceDir}/tools/halcogen-stub",
+        "CMAKE_CROSSCOMPILING_EMULATOR": "${sourceDir}/tools/dryrun/run_on_target"
+      }
+    },
+    {
       "name": "target-dryrun",
       "displayName": "TMS570LS3137 dry run (no TI compiler)",
-      "description": "Exercises the whole cross-build (toolchain file, target/CMakeLists.txt, link lines, CTest wiring) with stand-in armcl/armar scripts and an empty HALCoGen stub. Produces empty .out files. Used by CI",
+      "description": "Exercises the whole cross-build (toolchain file, target/CMakeLists.txt, link lines, CTest wiring) with stand-in armcl/armar scripts and the stub HALCoGen project. Produces empty .out files. Used by CI",
       "inherits": "target",
       "binaryDir": "${sourceDir}/build/target-dryrun",
       "cacheVariables": {
         "TI_CGT_ARM_ROOT": "${sourceDir}/tools/dryrun",
-        "HALCOGEN_DIR": "${sourceDir}/tools/dryrun/halcogen-stub",
+        "HALCOGEN_DIR": "${sourceDir}/tools/halcogen-stub",
         "CMAKE_CROSSCOMPILING_EMULATOR": "${sourceDir}/tools/dryrun/run_on_target",
         "CMAKE_C_COMPILER": "${sourceDir}/tools/dryrun/armcl",
         "CMAKE_ASM_COMPILER": "${sourceDir}/tools/dryrun/armcl",
@@ -114,6 +125,10 @@
     {
       "name": "target",
       "configurePreset": "target"
+    },
+    {
+      "name": "target-ci",
+      "configurePreset": "target-ci"
     },
     {
       "name": "target-dryrun",
@@ -161,6 +176,14 @@
         "jobs": 1,
         "timeout": 300
       },
+      "output": {
+        "outputOnFailure": true,
+        "verbosity": "verbose"
+      }
+    },
+    {
+      "name": "target-ci",
+      "configurePreset": "target-ci",
       "output": {
         "outputOnFailure": true,
         "verbosity": "verbose"

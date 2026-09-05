@@ -86,6 +86,47 @@ jobs:
       - name: Test
         run: ctest --preset host-m32
 
+  target-build:
+    name: Target build (TI armcl 20.2.7.LTS, stub board support)
+    runs-on: ubuntu-latest
+    env:
+      TI_CGT_ARM_VERSION: 20.2.7.LTS
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cmake ninja-build ruby
+
+      # ~100 MB installer; cached across runs by version.
+      - name: Cache TI ARM CGT
+        uses: actions/cache@v4
+        with:
+          path: ~/ti/ti-cgt-arm_${{ env.TI_CGT_ARM_VERSION }}
+          key: ti-cgt-arm-${{ env.TI_CGT_ARM_VERSION }}-linux-x64
+
+      # Downloads + installs unattended on a cache miss, no-op on a hit; either way it
+      # exports TI_CGT_ARM_ROOT for the following steps.
+      - name: Install TI ARM CGT
+        run: tools/ci/install-ti-cgt.sh ~/ti/ti-cgt-arm_${{ env.TI_CGT_ARM_VERSION }}
+
+      # Real armcl, stub HALCoGen (tools/halcogen-stub): every test binary is compiled
+      # and linked for the Cortex-R4F. Nothing runs; the .out files must not be flashed.
+      - name: Configure
+        run: cmake --preset target-ci
+
+      - name: Build
+        run: cmake --build --preset target-ci -- -v
+
+      - name: Upload test images and map files
+        uses: actions/upload-artifact@v4
+        with:
+          name: tms570-test-images
+          path: |
+            build/target-ci/test/*.out
+            build/target-ci/*.map
+
   target-dryrun:
     name: Target build dry run (no TI compiler)
     runs-on: ubuntu-latest

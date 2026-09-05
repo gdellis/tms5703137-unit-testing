@@ -38,8 +38,10 @@ cmake --build --preset host-coverage-report     # runs the tests, writes the rep
 The same tests also run **on the board**: `cmake --preset target` cross-compiles them
 with TI `armcl` (HALCoGen supplies start-up and SCI), `ctest --preset target` flashes
 each binary and reads Unity's verdict back over the UART. See
-[docs/03-on-target.md](docs/03-on-target.md). `cmake --preset target-dryrun` checks
-that plumbing without the TI tools and is what CI runs.
+[docs/03-on-target.md](docs/03-on-target.md). CI compiles and links all of it with
+the real TI compiler on every commit (`target-ci` preset; the job downloads and caches
+the compiler) against a stub board-support package, and `target-dryrun` checks the
+plumbing on machines without the TI tools.
 
 ## What is in the box
 
@@ -65,7 +67,9 @@ target/                          on-target runtime: unity_config.h, Unity-over-S
                                  CMake glue for the HALCoGen project you generate there
 tools/run_on_target.sh           CTest launcher: flash, capture serial, return verdict
 tools/unity_serial_capture.py    the capture half of that, usable standalone
-tools/dryrun/                    stand-in armcl/armar + HALCoGen stub for the dry run
+tools/halcogen-stub/             stand-in HALCoGen project: compiles and links, never runs
+tools/dryrun/                    stand-in armcl/armar scripts for the dry run
+tools/ci/install-ti-cgt.sh       unattended download + install of TI ARM CGT (used by CI)
 ```
 
 Four testing patterns are demonstrated, because a TMS570 project needs all of them:
