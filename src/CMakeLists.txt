@@ -20,4 +20,10 @@ target_include_directories(tms570_app PUBLIC
 
 target_link_libraries(tms570_app PUBLIC heater_ctrl_model)
 
-target_compile_options(tms570_app PRIVATE -Wall -Wextra -Werror -pedantic)
+# Warnings are errors on every compiler; the warning *selection* flags are gcc/clang
+# syntax, so they are gated. TI armcl's defaults (plus --diag_warning=225 from the
+# toolchain file) are the equivalent there.
+target_compile_options(tms570_app PRIVATE
+    $<$<C_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-pedantic;-Werror>
+    $<$<C_COMPILER_ID:TI>:--emit_warnings_as_errors>
+)

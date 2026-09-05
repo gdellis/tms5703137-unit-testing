@@ -14,7 +14,7 @@ for applying this to an existing HALCoGen / Embedded Coder project is in
 
 ## Quick start
 
-Prerequisites: CMake ≥ 3.21, Ninja, a C compiler (gcc or clang), Ruby (≥ 2.7; used
+Prerequisites: CMake ≥ 3.21, Ninja, a C11 compiler (gcc or clang), Ruby (≥ 2.7; used
 only to *generate* mocks and test runners), git (for FetchContent).
 
 ```sh
@@ -25,6 +25,12 @@ ctest --preset host            # runs every test executable
 
 Swap `host` for `host-clang` to build with clang. Both run in CI
 (`.github/workflows/ci.yml`).
+
+The same tests also run **on the board**: `cmake --preset target` cross-compiles them
+with TI `armcl` (HALCoGen supplies start-up and SCI), `ctest --preset target` flashes
+each binary and reads Unity's verdict back over the UART. See
+[docs/03-on-target.md](docs/03-on-target.md). `cmake --preset target-dryrun` checks
+that plumbing without the TI tools and is what CI runs.
 
 ## What is in the box
 
@@ -44,6 +50,12 @@ test/test_heater_task.c          glue tests: sensor, GIO *and the model* are moc
 test/support/cmock_config.yml    CMock plugins/options
 cmake/FetchUnityCMock.cmake      pins Unity v2.7.0 + CMock v2.7.0 via FetchContent
 cmake/UnityTest.cmake            add_cmock_mock() / add_unity_test() helpers
+cmake/toolchain-ti-armcl.cmake   TI ARM compiler toolchain file (Cortex-R4F, big-endian)
+target/                          on-target runtime: unity_config.h, Unity-over-SCI hooks,
+                                 CMake glue for the HALCoGen project you generate there
+tools/run_on_target.sh           CTest launcher: flash, capture serial, return verdict
+tools/unity_serial_capture.py    the capture half of that, usable standalone
+tools/dryrun/                    stand-in armcl/armar + HALCoGen stub for the dry run
 ```
 
 Four testing patterns are demonstrated, because a TMS570 project needs all of them:
@@ -83,8 +95,6 @@ Runners are generated - test files never contain `main()`.
 
 ## Roadmap (not in this pass)
 
-- **On-target execution** of the same Unity tests with the TI ARM compiler (CCS,
-  simulator or board) to catch big-endian / ILP32 / compiler-specific behaviour.
 - **Coverage** (gcov/lcov on host) once there is real code to measure.
 - **Simulink Test SIL/PIL** for model-vs-code equivalence lives on the Simulink side
   and is complementary to the model/glue tests here; see docs/02 section 5.

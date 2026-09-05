@@ -14,4 +14,4 @@ add_library(heater_ctrl_model STATIC
 
 target_include_directories(heater_ctrl_model PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-target_compile_options(heater_ctrl_model PRIVATE -Wall -Wextra)
+target_compile_options(heater_ctrl_model PRIVATE $<$<C_COMPILER_ID:GNU,Clang>:-Wall;-Wextra>)

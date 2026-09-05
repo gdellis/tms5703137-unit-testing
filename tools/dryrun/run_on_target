@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Stand-in for tools/run_on_target.sh in the 'target-dryrun' preset: proves CTest
+# hands each test executable to the emulator, without touching any hardware.
+set -eu
+image=${1:?usage: run_on_target <test.out>}
+[[ -f $image ]] || { echo "dry run: image not found: $image" >&2; exit 1; }
+echo "dry run: would flash and run $(basename "$image") (no hardware, no verdict)"

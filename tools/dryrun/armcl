@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+#
+# Stand-in for TI's armcl, used only by the 'target-dryrun' preset. It accepts the
+# command lines CMake's TI compiler rules generate and produces empty output files,
+# so the whole cross-build (toolchain file, target/CMakeLists.txt, link lines, CTest
+# wiring) can be exercised on a machine - or a CI runner - without the TI toolchain.
+# It compiles nothing.
+set -eu
+
+out=""
+dep=""
+for arg in "$@"; do
+    case $arg in
+        --output_file=*)        out=${arg#--output_file=} ;;
+        --preproc_dependency=*) dep=${arg#--preproc_dependency=} ;;
+        --map_file=*)           : > "${arg#--map_file=}" ;;
+        -h|--help)              echo "Texas Instruments armcl stand-in (dry run)"; exit 0 ;;
+        --compiler_revision)    echo "20.2.7"; exit 0 ;;
+    esac
+done
+
+if [[ -z $out ]]; then
+    echo "dryrun armcl: no --output_file= in: $*" >&2
+    exit 1
+fi
+
+: > "$out"
+if [[ -n $dep ]]; then
+    printf '%s:\n' "$out" > "$dep"
+fi

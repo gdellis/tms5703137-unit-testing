@@ -29,3 +29,26 @@ jobs:
 
       - name: Test
         run: ctest --preset ${{ matrix.preset }}
+
+  target-dryrun:
+    name: Target build dry run (no TI compiler)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cmake ninja-build ruby
+
+      # Exercises cmake/toolchain-ti-armcl.cmake, target/CMakeLists.txt, the link
+      # lines and the CTest emulator wiring with stand-in armcl/armar scripts. It
+      # compiles nothing; a real run needs the TI toolchain and a board (docs/03).
+      - name: Configure
+        run: cmake --preset target-dryrun
+
+      - name: Build
+        run: cmake --build --preset target-dryrun -- -v
+
+      - name: Test wiring
+        run: ctest --preset target-dryrun

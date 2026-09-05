@@ -65,9 +65,17 @@ function(add_unity_test NAME)
 
     add_executable(${NAME} ${_test_src} ${_runner} ${UT_SOURCES})
     target_compile_definitions(${NAME} PRIVATE UNIT_TEST)
-    target_compile_options(${NAME} PRIVATE -Wall -Wextra)
+    target_compile_options(${NAME} PRIVATE $<$<C_COMPILER_ID:GNU,Clang>:-Wall;-Wextra>)
     target_include_directories(${NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/support ${UT_INCLUDES})
     target_link_libraries(${NAME} PRIVATE unity::framework ${UT_MOCKS} ${UT_LIBS})
 
+    # On the board every test binary also needs the HALCoGen start-up code, the SCI
+    # output hooks and the linker command file (see target/CMakeLists.txt).
+    if(TARGET tms570_target_runtime)
+        target_link_libraries(${NAME} PRIVATE tms570_target_runtime)
+    endif()
+
+    # When cross-compiling, CTest prefixes the command with CMAKE_CROSSCOMPILING_EMULATOR
+    # (tools/run_on_target.sh in the 'target' preset), which flashes and captures.
     add_test(NAME ${NAME} COMMAND ${NAME})
 endfunction()

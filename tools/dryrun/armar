@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Stand-in for TI's armar (dry run only): "armar qr <archive> <objects...>".
+set -eu
+[[ $# -ge 2 ]] || { echo "dryrun armar: expected: qr <archive> <objects...>" >&2; exit 1; }
+: > "$2"

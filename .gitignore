@@ -1,6 +1,10 @@
 # CMake build trees (all presets build under build/<preset>)
 build/
 
+# HALCoGen output for the on-target build is generated locally, never committed
+target/halcogen/*
+!target/halcogen/README.md
+
 # Editor / tooling
 .cache/
 .vscode/
