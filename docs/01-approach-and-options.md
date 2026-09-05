@@ -61,7 +61,8 @@ Embedded Coder output is ordinary C, so Unity on the host can call
 `Model_initialize()` / `Model_step()` with `rtU` inputs and assert on `rtY` outputs.
 That is the cheap way to integration-test generated code with hand-written code.
 Requires MATLAB/Simulink/Embedded Coder/Simulink Test licences and is heavier than a
-"first pass" tool.
+"first pass" tool. An unverified sketch of the scripted Test Manager / MIL-SIL-PIL /
+CI workflow is in [04-simulink-test.md](04-simulink-test.md).
 
 ### TI SPNU615 "Hercules Software Diagnostic Library Test Automation Unit"  -  out of scope
 

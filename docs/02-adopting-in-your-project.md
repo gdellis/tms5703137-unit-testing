@@ -188,7 +188,10 @@ Keep Simulink Test (SIL/PIL, back-to-back equivalence, model coverage) for provi
 the generated code matches the model and meets model-level requirements. Use Unity
 for everything the model cannot see: unit conversion into `_U`, what drives `enable`,
 what the outputs are wired to, and as the per-commit gate on a CI runner without a
-MATLAB licence.
+MATLAB licence. [03-on-target.md](03-on-target.md) is the non-Simulink way to test
+the same "does the real compiler/CPU change behaviour" claim PIL makes. An
+unverified sketch of building this track out - scripted against this repo's own
+`heater_ctrl` example - is in [04-simulink-test.md](04-simulink-test.md).
 
 ## 6. Running the same tests on the target
 
