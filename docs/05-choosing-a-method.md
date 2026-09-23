@@ -109,8 +109,10 @@ flowchart LR
 | Host, `-m32` | `host-m32` | ILP32: `long`, `size_t` and pointer widths as on the target | endianness, TI compiler behaviour | every commit (still free) |
 | Coverage | `host-coverage` | which lines and branches nothing exercises | that the covered lines are *correct* | every commit; read it weekly |
 | On the board | `target` | big-endian BE-32, `armcl` codegen, real alignment, real stack | nothing above it - this is the reference | per release, or nightly with a board in CI |
+| Simulink MIL | (docs/04) | the design is right, before any code exists | anything about the generated code | every model save |
 | Simulink SIL | (docs/04) | generated C matches the model | anything hand-written | per model change |
 | Simulink PIL | (docs/04) | SIL, plus the real compiler and CPU | anything hand-written | per model change, manually |
+| HIL rig | (docs/09) | real I/O, real timing, buses, electrical faults | that your plant model is right | per integration milestone |
 
 ### Design tips
 
@@ -156,8 +158,14 @@ testing can, because neither side of the comparison is hand-written.
 source of truth; its generated C ships; you hold Simulink Test licences; and
 "Embedded Coder changed behaviour between releases" is a risk somebody would sign
 off on. Otherwise pattern 3 plus `docs/03`'s on-target run covers the same ground
-for the price of a compiler. Details and an unverified scripted workflow:
-[04-simulink-test.md](04-simulink-test.md).
+for the price of a compiler - [04-simulink-test.md](04-simulink-test.md) §9 spells out
+that substitute workflow step by step. Each stage's full approach - what it proves,
+setting it up, authoring, asserting, triage - is in that document's §5 to §7.
+
+None of these four venues is a hardware-in-the-loop rig, which answers a different
+question again: does the whole ECU behave, with real I/O, real timing and injected
+electrical faults. That is [09-hil-testing.md](09-hil-testing.md), and it is a
+programme-level investment rather than a testing choice.
 
 ## 5. Rules that keep one test source valid in both venues
 

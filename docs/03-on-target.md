@@ -140,7 +140,8 @@ board *running*:
   `test_gio_hal.c`) keep poking their RAM "registers" on the board as well. They are
   *driver-logic* tests, now compiled by the real compiler, not hardware tests. Real
   hardware-in-the-loop tests (does the ADC actually convert?) are a different category
-  with different fixtures; do not try to make the same file do both.
+  with different fixtures; do not try to make the same file do both. That category has
+  its own guide: [09-hil-testing.md](09-hil-testing.md).
 - Mock-based tests (`test_temp_monitor.c`, `test_heater_task.c`) and the model test
   (`test_heater_ctrl.c`) are the ones that earn their keep here: pure logic, compiled
   big-endian, ILP32, packed enums, VFP.

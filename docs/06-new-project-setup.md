@@ -32,7 +32,12 @@ flowchart TD
 | **B** register overlay | driver logic tested without hardware | an hour per peripheral | A |
 | **C** model + glue tests | generated code tested as shipped | an hour, plus model config | A, Embedded Coder output |
 | **D** on-target | endianness and `armcl` truth | a day, plus a board | A, TI CGT, HALCoGen, XDS probe |
-| **E** Simulink Test | model-vs-code equivalence | days, plus licences | C, MATLAB + Simulink Test, self-hosted runner |
+| **E** Simulink Test | model-vs-code equivalence (MIL/SIL/PIL) | days, plus licences | C, MATLAB + Simulink Test, self-hosted runner |
+
+Hardware-in-the-loop is deliberately not a track here: it needs a rig, a real-time plant
+model and an owner, so it is a programme decision rather than a step in setting a
+repository up. When that decision is made, [09-hil-testing.md](09-hil-testing.md) covers
+the approach.
 
 ---
 
@@ -495,6 +500,7 @@ Do not wire it into required checks until it has run green on your runner twice.
 | First model | Track C, both test files |
 | Before first release | Track D, one full run on the board |
 | If and when licensed | Track E |
+| If a rig is funded | HIL scenarios and fault injection ([09](09-hil-testing.md)) - not a repo change |
 
 ## First-run troubleshooting
 

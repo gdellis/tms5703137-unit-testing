@@ -34,9 +34,15 @@ real compiler/endianness before it is trusted.
    and awkward to automate, but it is the only place endianness and compiler quirks are
    real. Unity is designed to run here too - it is a couple of `.c` files with a
    pluggable `UNITY_OUTPUT_CHAR`.
-3. **Simulink SIL / PIL.** For Embedded Coder output only: Simulink Test runs the
-   generated C (SIL, on host) or the target binary (PIL) against the model and checks
-   equivalence. Excellent for the model, useless for hand-written drivers and glue.
+3. **Simulink MIL / SIL / PIL.** For Embedded Coder output only: Simulink Test
+   simulates the model (MIL), or runs the generated C on the host (SIL) or the target
+   binary on the board (PIL) against it, checking trajectory equivalence. Excellent for
+   the model, useless for hand-written drivers and glue. See
+   [04-simulink-test.md](04-simulink-test.md).
+4. **Hardware-in-the-loop.** The whole ECU against a real-time plant model, wired
+   through real I/O. The only venue that sees real timing, real electrical faults and
+   the bus stack; needs a rig, so it is a programme-level investment rather than a
+   testing choice. See [09-hil-testing.md](09-hil-testing.md).
 
 ## Options weighed
 
