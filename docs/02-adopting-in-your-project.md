@@ -1,7 +1,10 @@
 # Adopting this in an existing TMS570 project
 
 The sandbox is a template. This page is the checklist for moving the pattern into a
-real HALCoGen / CCS / Embedded Coder project.
+real HALCoGen / CCS / Embedded Coder project **that already exists**. Starting from
+nothing instead? [06-new-project-setup.md](06-new-project-setup.md) is the green-field
+version, organised by which testing tracks you chose in
+[05-choosing-a-method.md](05-choosing-a-method.md).
 
 ## 1. Decide where the mock boundary is
 

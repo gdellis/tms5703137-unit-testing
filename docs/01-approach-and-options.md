@@ -3,6 +3,12 @@
 Decision record for this sandbox. Read this first if you want to know *why* the
 template looks the way it does.
 
+For the practical follow-ups: [05-choosing-a-method.md](05-choosing-a-method.md)
+turns these options into a per-module choice,
+[06-new-project-setup.md](06-new-project-setup.md) sets a green-field project up
+around that choice, and [07-unity-best-practices.md](07-unity-best-practices.md)
+covers writing the tests.
+
 ## The target and what makes it awkward to test
 
 | Property | TMS570LS3137 | Typical host PC | Why it matters |

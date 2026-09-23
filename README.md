@@ -8,11 +8,18 @@ host PC** with [Unity](https://www.throwtheswitch.org/unity) +
 Code Composer Studio, no TI compiler needed for the tests.
 
 The repo exists to settle the approach and to be copied into real TMS570 projects.
-The reasoning behind the choices (including why TI's SPNU615 "Test Automation Unit"
-and Simulink SIL are *not* the first-pass tools) is in
-[docs/01-approach-and-options.md](docs/01-approach-and-options.md). The step-by-step
-for applying this to an existing HALCoGen / Embedded Coder project is in
-[docs/02-adopting-in-your-project.md](docs/02-adopting-in-your-project.md).
+
+## Documentation
+
+| Doc | Read it when |
+|---|---|
+| [01-approach-and-options.md](docs/01-approach-and-options.md) | you want the decision record - why Unity + CMock, and why TI's SPNU615 "Test Automation Unit" and Simulink SIL are *not* the first-pass tools |
+| [02-adopting-in-your-project.md](docs/02-adopting-in-your-project.md) | you have an **existing** HALCoGen / Embedded Coder project to retrofit |
+| [03-on-target.md](docs/03-on-target.md) | you want the same tests running on the board |
+| [04-simulink-test.md](docs/04-simulink-test.md) | you have Simulink Test licences and want MIL/SIL/PIL equivalence (unverified sketch) |
+| [05-choosing-a-method.md](docs/05-choosing-a-method.md) | you have a module in front of you and need to pick a pattern and a venue |
+| [06-new-project-setup.md](docs/06-new-project-setup.md) | you are starting a **new** project and want the setup for the tracks you chose |
+| [07-unity-best-practices.md](docs/07-unity-best-practices.md) | you are writing the tests themselves |
 
 ## Quick start
 
@@ -74,7 +81,9 @@ tools/dryrun/                    stand-in armcl/armar scripts for the dry run
 tools/ci/install-ti-cgt.sh       unattended download + install of TI ARM CGT (used by CI)
 ```
 
-Four testing patterns are demonstrated, because a TMS570 project needs all of them:
+Four testing patterns are demonstrated, because a TMS570 project needs all of them
+([05-choosing-a-method.md](docs/05-choosing-a-method.md) is the guide to picking
+between them):
 
 1. **Mock the HAL boundary** (`test_temp_monitor.c`). Application code is compiled
    against a CMock-generated `mock_adc_hal.c`. Tests state which HAL calls are
@@ -107,7 +116,9 @@ Four testing patterns are demonstrated, because a TMS570 project needs all of th
    [LIBS <prebuilt libraries>])`.
 3. `cmake --build --preset host && ctest --preset host`.
 
-Runners are generated - test files never contain `main()`.
+Runners are generated - test files never contain `main()`. Conventions for the test
+file itself - naming, fixtures, assertion choice, the CMock traps - are in
+[07-unity-best-practices.md](docs/07-unity-best-practices.md).
 
 ## Where to go from here
 
