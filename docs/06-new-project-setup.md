@@ -70,6 +70,7 @@ docs/
 |---|---|---|
 | `cmake/FetchUnityCMock.cmake` | `cmake/` | no - bump the pinned tags when you choose to |
 | `cmake/UnityTest.cmake` | `cmake/` | no |
+| `cmake/Coverage.cmake` | `cmake/` | no - it defines `coverage_instrument()`, which `UnityTest.cmake` calls unconditionally. Inert until you configure with `COVERAGE=ON`, so take it now even if coverage is a later step |
 | `test/support/cmock_config.yml` | `test/support/` | yes - `:treat_as` lists your own enum types |
 | `CMakePresets.json` | root | yes - keep the presets for your tracks, delete the rest |
 | `.github/workflows/ci.yml` | `.github/workflows/` | yes - delete jobs for tracks you did not take |
@@ -80,8 +81,7 @@ tracks D and E.
 
 ### A.3 Top-level `CMakeLists.txt`
 
-The track-A subset, with the cross-compiling and coverage hooks left out until you
-need them:
+The track-A subset, with the cross-compiling hooks left out until track D needs them:
 
 ```cmake
 cmake_minimum_required(VERSION 3.21)
@@ -96,6 +96,12 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)      # gcc/clang: -std=c11; armcl: --c11 --strict_ansi
 
 include(CTest)                   # defines BUILD_TESTING, enables ctest
+
+# Defines coverage_instrument(). cmake/UnityTest.cmake calls it on every test, and
+# any generated-code library will too, so this include is required even when you are
+# not measuring coverage yet - leave it out and the configure fails with
+# "Unknown CMake command". It is a no-op until you configure with COVERAGE=ON.
+include(cmake/Coverage.cmake)
 
 add_subdirectory(src)            # firmware library: compiled, never run on the host
 
@@ -472,7 +478,7 @@ Do not wire it into required checks until it has run green on your runner twice.
 
 | Add-on | Copy | Preset | Worth it when |
 |---|---|---|---|
-| Coverage | `cmake/Coverage.cmake`, `include()` it, call `coverage_instrument()` | `host-coverage` | as soon as there is real code; gate on lines, read branches (`docs/02` §8) |
+| Coverage | already copied and included in A.2/A.3; add the preset, and call `coverage_instrument()` on any library you add yourself | `host-coverage` | as soon as there is real code; gate on lines, read branches (`docs/02` §8) |
 | ILP32 check | preset only | `host-m32` | immediately - it is free and catches `long` assumptions (`docs/02` §9) |
 | Second compiler | preset only | `host-clang` | immediately |
 | Branch protection | `.github/rulesets/` | - | first week, before the backlog |

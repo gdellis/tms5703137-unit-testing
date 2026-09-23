@@ -62,9 +62,9 @@ flowchart TD
 ```
 
 The last branch matters more than it looks. `temp_monitor_counts_to_dc()` is pure
-arithmetic, so four of the fourteen tests in `test_temp_monitor.c` call it with a
-number and assert a number. No fixture, no mock, no ceremony. **Reach for a mock only
-when the code under test insists on talking to something.**
+arithmetic, so five of the tests in `test_temp_monitor.c` call it with a number and
+assert a number. No fixture, no mock, no ceremony. **Reach for a mock only when the
+code under test insists on talking to something.**
 
 ### Design tips
 
