@@ -10,7 +10,7 @@ version, organised by which testing tracks you chose in
 
 Draw the line **one layer above the register-poking code**:
 
-```
+```text
 application logic  --->  hand-written HAL / HALCoGen driver API  --->  registers
   (mock the HAL)             (overlay-redirect the registers)
 ```

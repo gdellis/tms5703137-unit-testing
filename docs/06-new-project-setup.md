@@ -43,7 +43,7 @@ flowchart TD
 Create this much on day one, even if most of it is empty. The split between `app`,
 `hal` and `gen` is what makes the seams in `docs/05` possible later.
 
-```
+```text
 CMakeLists.txt
 CMakePresets.json
 .gitignore                       build/

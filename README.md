@@ -55,7 +55,7 @@ plumbing on machines without the TI tools.
 
 ## What is in the box
 
-```
+```text
 src/app/temp_monitor.[ch]        application logic under test (calls the ADC HAL)
 src/app/heater_task.[ch]         glue: sensor -> model inputs, model outputs -> GIO pin
 src/hal/adc_hal.[ch]             ADC HAL: mocked in app tests, overlay-tested itself

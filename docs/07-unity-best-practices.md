@@ -5,9 +5,9 @@ taken from, or matches, the tests in `test/`. [05](05-choosing-a-method.md) deci
 *which* kind of test to write and [08](08-test-design-and-strategy.md) decides *which
 cases* it should cover; this page is about writing it well once both are settled.
 
-The rules that look fussy - no `malloc`, explicit tolerances, reset state in `setUp()`
-- are the ones that keep the same source file running on the host **and** on the
-board, and keep a red test meaningful at 5pm on a Friday.
+The rules that look fussy - no `malloc`, explicit tolerances, reset state in
+`setUp()` - are the ones that keep the same source file running on the host **and**
+on the board, and keep a red test meaningful at 5pm on a Friday.
 
 ## 1. The lifecycle you are writing into
 

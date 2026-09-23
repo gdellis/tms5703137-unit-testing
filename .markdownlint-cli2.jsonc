@@ -1,0 +1,51 @@
+// markdownlint configuration for this repository.
+//
+//   npx markdownlint-cli2            # lint every Markdown file below
+//   npx markdownlint-cli2 --fix      # apply the mechanically fixable rules
+//
+// Globs and ignores live here so a bare `npx markdownlint-cli2` lints exactly
+// this repository's own docs. Without the ignores it descends into build/,
+// where FetchContent checks out Unity and CMock, and reports thousands of
+// issues in documentation that is theirs to style, not ours.
+//
+// Rule reference:
+// https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+{
+  "globs": ["**/*.md"],
+
+  "ignores": [
+    "build/**",
+    "node_modules/**"
+  ],
+
+  "config": {
+    "default": true,
+
+    // Prose in docs/ wraps at 88 columns; 90 leaves a little slack.
+    //
+    // Tables are exempt because a row cannot be wrapped at all - the cell
+    // would become a new row. Code blocks are exempt because they quote real
+    // files verbatim (CMake calls, directory trees, captured serial output,
+    // Mermaid node definitions); re-wrapping them to fit would misrepresent
+    // what the file actually contains.
+    "MD013": {
+      "line_length": 90,
+      "tables": false,
+      "code_blocks": false
+    },
+
+    // Table delimiter rows are written `|---|---|` throughout. "consistent"
+    // enforces one style per file without mandating which one, so this stays
+    // true if a file is reformatted wholesale later.
+    "MD060": {
+      "style": "consistent"
+    },
+
+    // Repeating a subsection name under a different parent is deliberate:
+    // docs/05 has a "Design tips" subsection under both "Picking a pattern"
+    // and "Picking a venue". Duplicates among *siblings* are still errors.
+    "MD024": {
+      "siblings_only": true
+    }
+  }
+}
