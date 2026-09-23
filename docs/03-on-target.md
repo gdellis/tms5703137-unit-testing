@@ -98,7 +98,7 @@ How it is wired:
 Load a `.out` in CCS (Debug → Load Program) and open a terminal on the board's serial
 port at 115200 8N1 before pressing Run. You get the same text the host prints:
 
-```
+```text
 test/test_heater_ctrl.c:79:test_initialize_leaves_outputs_off:PASS
 ...
 -----------------------
@@ -129,7 +129,7 @@ board *running*:
   programming.
 - **CCS Debug Server Scripting:** `tools/dss_flash_and_run.js` loads the image and
   calls `runAsynch()`, e.g.
-  `TMS570_FLASH_CMD='<ccs>/ccs/ccs_base/scripting/bin/dss.sh tools/dss_flash_and_run.js board.ccxml {image}'`.
+  `TMS570_FLASH_CMD='<ccs>/ccs/ccs_base/scripting/bin/dss.sh tools/dss_flash_and_run.js board.ccxml {image}'`. <!-- markdownlint-disable-line MD013 -->
 
 `tools/unity_serial_capture.py` is usable on its own too (`--port`, `--baud`,
 `--timeout`); it exits 0 for `OK`, 1 for `FAIL`, 2 on timeout.

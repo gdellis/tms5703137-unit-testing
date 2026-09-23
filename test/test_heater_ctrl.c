@@ -24,6 +24,18 @@
 #define T_OFF_EDGE   (41.0F)
 #define T_OVER       (61.0F)
 
+/* The relay edges above sit exactly on the band, which pins them. The over-temperature
+ * compare had no such pair: T_OVER is a whole degree clear of the threshold, so any
+ * threshold between the band and 61.0 passed, and > was indistinguishable from >=.
+ * These two straddle it. See docs/08-test-design-and-strategy.md section 2. */
+#define T_OVER_EDGE  (60.0F)   /* exactly OverTemp_degC - the compare is >, so no count */
+#define T_JUST_OVER  (60.1F)   /* over by 0.1 degC: the resolution this pins to        */
+
+/* temp_degC is continuous, so unlike temp_monitor's ADC counts there is no "one unit
+ * above" to test - the pair above pins the trip point to 0.1 degC, and a threshold
+ * error smaller than that is deliberately out of scope. Pick the gap from the
+ * requirement, not from what is convenient. */
+
 /* ---- fixture ------------------------------------------------------------------ */
 
 static P_heater_ctrl_T P_defaults;
@@ -134,6 +146,40 @@ void test_overtemp_faults_only_after_debounce(void)
     TEST_ASSERT_FALSE(heater_ctrl_Y.fault);
 
     (void)step(T_OVER, true);
+    TEST_ASSERT_TRUE(heater_ctrl_Y.fault);
+}
+
+void test_overtemp_does_not_count_exactly_at_threshold(void)
+{
+    /* The compare is strictly greater, so sitting on the threshold for far longer
+     * than the debounce must never latch. Holding at 60.0 rather than passing
+     * through it is what makes >= (and a threshold nudged down) visible. */
+    step_n(T_OVER_EDGE, true, 10U);
+
+    TEST_ASSERT_FALSE(heater_ctrl_Y.fault);
+}
+
+void test_overtemp_counts_just_above_threshold(void)
+{
+    /* The other side of the same edge. Without this a threshold nudged *up* would go
+     * unnoticed, because 61.0 would still trip it. */
+    step_n(T_JUST_OVER, true, 3U);
+
+    TEST_ASSERT_TRUE(heater_ctrl_Y.fault);
+}
+
+void test_disable_restarts_the_debounce_counter(void)
+{
+    /* Disabling resets OverTemp_count, so the debounce starts from zero on
+     * re-enable. test_fault_latches_until_disabled cannot see this: by the time it
+     * disables, the counter has already been cleared by a cold sample. */
+    step_n(T_OVER, true, 2U);                    /* one short of the debounce */
+    (void)step(T_COLD, false);                   /* disabled: states reset     */
+
+    step_n(T_OVER, true, 2U);                    /* counting again, from zero  */
+    TEST_ASSERT_FALSE(heater_ctrl_Y.fault);
+
+    (void)step(T_OVER, true);                    /* third in a row: now it latches */
     TEST_ASSERT_TRUE(heater_ctrl_Y.fault);
 }
 

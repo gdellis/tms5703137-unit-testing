@@ -31,7 +31,8 @@
           { "context": "Host unit tests (gcc -m32, ILP32)" },
           { "context": "Coverage (gcc + gcovr)" },
           { "context": "Target build (TI armcl 20.2.7.LTS, stub board support)" },
-          { "context": "Target build dry run (no TI compiler)" }
+          { "context": "Target build dry run (no TI compiler)" },
+          { "context": "Markdown lint (markdownlint-cli2)" }
         ]
       }
     }

@@ -1,13 +1,16 @@
 # Adopting this in an existing TMS570 project
 
 The sandbox is a template. This page is the checklist for moving the pattern into a
-real HALCoGen / CCS / Embedded Coder project.
+real HALCoGen / CCS / Embedded Coder project **that already exists**. Starting from
+nothing instead? [06-new-project-setup.md](06-new-project-setup.md) is the green-field
+version, organised by which testing tracks you chose in
+[05-choosing-a-method.md](05-choosing-a-method.md).
 
 ## 1. Decide where the mock boundary is
 
 Draw the line **one layer above the register-poking code**:
 
-```
+```text
 application logic  --->  hand-written HAL / HALCoGen driver API  --->  registers
   (mock the HAL)             (overlay-redirect the registers)
 ```
@@ -214,6 +217,7 @@ suite stays the everyday gate.
 | Coverage | `host-coverage` | what the suite does not exercise; HTML report as a build artifact, summary on the job page |
 | Target build | `target-ci` | the whole tree compiled and linked by the real TI compiler (downloaded and cached by the job) against a stub board-support package |
 | Target build dry run | `target-dryrun` | the cross-build plumbing, without the TI tools |
+| Markdown lint | - | broken Markdown in the docs: fences without a language, a wrapped line whose leading `-` silently becomes a bullet. Config and rule rationale in `.markdownlint-cli2.jsonc` |
 
 Copy it verbatim. The on-target run (docs/03) is not in CI unless a board is.
 
@@ -246,7 +250,9 @@ cmake --build --preset host-coverage-report     # ctest, then gcovr
   clear a fault), so each got a test - `test_error_counter_saturates_without_wrapping`
   and `test_overtemp_counter_saturates_without_wrapping` - and the suite is now at
   100% branches. Expect the branch view to point at exactly this kind of thing.
-  Gate on line coverage; read branch coverage.
+  Gate on line coverage; read branch coverage. Why a coverage percentage is a floor
+  rather than a target, and what to use instead to judge suite strength, is in
+  [08-test-design-and-strategy.md](08-test-design-and-strategy.md) §4.
 - **gcc only.** clang emits a different profile format; the preset refuses other
   compilers. gcovr runs anywhere Python does (`pip install gcovr`), including
   Windows, which is why it was chosen over lcov/genhtml.

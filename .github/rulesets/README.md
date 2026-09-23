@@ -35,11 +35,16 @@ Targets `~DEFAULT_BRANCH`, so it follows the default branch instead of hard-codi
 | `deletion` | `main` cannot be deleted |
 | `non_fast_forward` | no force-pushes to `main` |
 | `pull_request` | changes reach `main` only through a pull request, and review threads must be resolved before merging |
-| `required_status_checks` | all six CI jobs must pass on the merge commit |
+| `required_status_checks` | all seven CI jobs must pass on the merge commit |
 
-The six required checks are the job *names* from `.github/workflows/ci.yml`. **If you
+The seven required checks are the job *names* from `.github/workflows/ci.yml`. **If you
 rename a job, rename it here too** — a required check that never reports blocks every
 merge, and a job that is no longer required stops gating silently.
+
+Note that this file is not live: GitHub does not read it from the repository, so
+adding a check here gates nothing until the ruleset is re-applied with the `PUT`
+above. To keep a job advisory rather than blocking, leave its name out of the JSON —
+it still runs and still reports on the pull request.
 
 ## Choices worth knowing about
 

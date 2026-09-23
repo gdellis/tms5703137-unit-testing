@@ -138,6 +138,8 @@ sets MATLAB's exit code from the pass/fail result so the job fails correctly.
 | `docs/01-approach-and-options.md` | why Unity+CMock was the first-pass choice; Simulink Test listed as complementary |
 | `docs/02-adopting-in-your-project.md` §5.6 | the boundary: Simulink Test for the model, Unity for everything the model can't see |
 | `docs/03-on-target.md` | the non-Simulink way to prove the same compiler/CPU claim PIL makes, using only `armcl` and CTest |
+| `docs/05-choosing-a-method.md` §4 | when this track earns its licence cost, and what equivalence testing catches that a hand-written test cannot |
+| `docs/06-new-project-setup.md` (track E) | where this sits in setting a project up from scratch |
 | this document | the Simulink Test track itself |
 
 `test_heater_task.c` (the hand-written glue between `temp_monitor`/`gio_hal` and the
