@@ -476,6 +476,7 @@ Do not wire it into required checks until it has run green on your runner twice.
 | ILP32 check | preset only | `host-m32` | immediately - it is free and catches `long` assumptions (`docs/02` §9) |
 | Second compiler | preset only | `host-clang` | immediately |
 | Branch protection | `.github/rulesets/` | - | first week, before the backlog |
+| Markdown lint | `.markdownlint-cli2.jsonc` + the `markdown-lint` job | - | as soon as there are docs worth trusting; pin the linter version in the job |
 
 ## Suggested sequencing
 

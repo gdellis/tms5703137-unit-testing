@@ -217,6 +217,7 @@ suite stays the everyday gate.
 | Coverage | `host-coverage` | what the suite does not exercise; HTML report as a build artifact, summary on the job page |
 | Target build | `target-ci` | the whole tree compiled and linked by the real TI compiler (downloaded and cached by the job) against a stub board-support package |
 | Target build dry run | `target-dryrun` | the cross-build plumbing, without the TI tools |
+| Markdown lint | - | broken Markdown in the docs: fences without a language, a wrapped line whose leading `-` silently becomes a bullet. Config and rule rationale in `.markdownlint-cli2.jsonc` |
 
 Copy it verbatim. The on-target run (docs/03) is not in CI unless a board is.
 

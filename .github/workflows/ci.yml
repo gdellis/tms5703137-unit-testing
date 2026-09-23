@@ -180,3 +180,24 @@ jobs:
 
       - name: Test wiring
         run: ctest --preset target-dryrun
+
+  markdown-lint:
+    name: Markdown lint (markdownlint-cli2)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Pinned on purpose. markdownlint adds rules in minor releases - MD060
+      # arrived in 0.41 and flags every `|---|---|` delimiter row by default -
+      # so an unpinned run would start failing on somebody else's release, on a
+      # commit that changed nothing. Bump this deliberately, and fix or
+      # configure whatever the new version finds in the same commit.
+      #
+      # Globs, ignores and rule configuration all come from
+      # .markdownlint-cli2.jsonc, so this needs no arguments.
+      - name: Lint Markdown
+        run: npx --yes markdownlint-cli2@0.23.3
