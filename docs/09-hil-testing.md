@@ -8,9 +8,9 @@ HIL is the one stage in this repository's testing story that needs capital equip
 is also the only one that can tell you what happens when a connector corrodes.
 
 The model-based stages - MIL, SIL and PIL - are in
-[04-simulink-test.md](04-simulink-test.md). This document follows the same eight-part
-shape so the two read alike: what it proves, what you need, setting it up, authoring,
-running, asserting, triage and cadence.
+[04-simulink-test.md](04-simulink-test.md) §5, §6 and §7 respectively. This document
+follows the same eight-part shape so the two read alike: what it proves, what you need,
+setting it up, authoring, running, asserting, triage and cadence.
 
 ## 1. What HIL is, and what it is not
 
@@ -210,11 +210,11 @@ level should be:
 
 | Do not use HIL for | Use instead |
 |---|---|
-| Arithmetic, thresholds, state machines | host unit tests - [07](07-unity-best-practices.md), [08](08-test-design-and-strategy.md) |
-| Register-level driver behaviour | the register overlay pattern - [05](05-choosing-a-method.md) §2 |
-| Model-versus-code equivalence | SIL/PIL - [04](04-simulink-test.md) |
-| Endianness and word-size assumptions | the `target` preset - [03](03-on-target.md) |
-| Chasing a coverage percentage | anywhere else; structural coverage on a rig is slow and incomplete |
+| Arithmetic, thresholds, state machines | host unit tests: [08](08-test-design-and-strategy.md) §2 to derive the cases, [07](07-unity-best-practices.md) §6 to assert them |
+| Register-level driver behaviour | the register overlay pattern - [05](05-choosing-a-method.md) §2, and its blind spot in [08](08-test-design-and-strategy.md) §4.3 |
+| Model-versus-code equivalence | SIL and PIL - [04](04-simulink-test.md) §6 and §7 |
+| Endianness and word-size assumptions | the `target` preset - [03](03-on-target.md) §3 and §4, and `host-m32` first because it is free |
+| Chasing a coverage percentage | anywhere else; structural coverage on a rig is slow and incomplete - [08](08-test-design-and-strategy.md) §4.2 on why the number is a floor |
 
 The anti-pattern to watch for is a HIL suite that grows unit tests because the rig is
 "where testing happens". It is the same failure the "signals you chose wrong" table in

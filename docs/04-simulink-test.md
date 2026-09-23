@@ -143,6 +143,12 @@ changes the generated interface and every test with it:
 Getting the last two wrong is the classic way to make SIL and PIL pass against the wrong
 code, so confirm them before going further.
 
+[02-adopting-in-your-project.md](02-adopting-in-your-project.md) §5.2 carries the same
+settings from the host-testing angle - why each one matters to the Unity tests rather
+than to equivalence. The two tables must agree: if you change a setting here, change it
+there. §5.3 of that document covers the `rtwtypes.h` and `<stdbool.h>` include-order
+trap that the Hardware Implementation row above creates.
+
 ### Authoring the test
 
 Build the first test file in the Test Manager GUI - **Simulink → Test → Test Manager** -
@@ -297,8 +303,9 @@ still cannot see real I/O, real timing under load, or the plant - that is
 **On this target PIL is not optional in the way it is elsewhere.** The TMS570 is
 big-endian BE-32 with an ILP32 data model; the host is little-endian LP64. Union
 punning, byte-packed comms frames and checksums over raw memory can pass SIL for the
-wrong reason and fail here. The full difference table is in
-[03-on-target.md](03-on-target.md) §"What a target run catches".
+wrong reason and fail here. The host-versus-target difference table at the top of
+[03-on-target.md](03-on-target.md), just before its §1, lists the five that bite:
+compiler, endianness, data model, `sizeof(enum)` and floating point.
 
 ### What you need
 
