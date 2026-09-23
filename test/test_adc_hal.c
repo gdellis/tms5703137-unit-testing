@@ -63,6 +63,16 @@ void test_init_leaves_module_out_of_reset(void)
     TEST_ASSERT_EQUAL_HEX32(0UL, adcREG1_fake.RSTCR);
 }
 
+void test_init_programs_the_clock_prescaler(void)
+{
+    adc_hal_init();
+
+    /* ADC_HAL_CLOCK_PRESCALE is private to adc_hal.c, so the value is repeated here
+     * rather than shared: changing the prescaler should be a deliberate edit in both
+     * places. Without this the whole write went untested. */
+    TEST_ASSERT_EQUAL_HEX32(7UL, adcREG1_fake.CLOCKCR);
+}
+
 /* ---- read_channel ------------------------------------------------------------- */
 
 void test_read_selects_requested_channel_and_returns_fifo_value(void)
@@ -104,6 +114,21 @@ void test_read_detects_channel_id_mismatch(void)
 
     TEST_ASSERT_EQUAL(ADC_HAL_ERR_CHID_MISMATCH, adc_hal_read_channel(5U, &counts));
     TEST_ASSERT_EQUAL_HEX16(0x5555U, counts);
+}
+
+void test_read_accepts_highest_valid_channel(void)
+{
+    /* The bound is `channel >= ADC_NUM_CHANNELS`. The rejection test below pins it
+     * from above; without this one, narrowing the range by a channel would pass. */
+    uint16_t counts = 0U;
+    const uint8_t last = (uint8_t)(ADC_NUM_CHANNELS - 1U);
+
+    adcREG1_fake.G1SR  = ADC_G1SR_END;
+    adcREG1_fake.G1BUF = fifo_word(last, 0x0777U);
+
+    TEST_ASSERT_EQUAL(ADC_HAL_OK, adc_hal_read_channel(last, &counts));
+    TEST_ASSERT_EQUAL_HEX32(1UL << last, adcREG1_fake.G1SEL);
+    TEST_ASSERT_EQUAL_HEX16(0x0777U, counts);
 }
 
 void test_read_rejects_channel_out_of_range_without_touching_hardware(void)

@@ -53,6 +53,29 @@ Rule of thumb for embedded: **boundaries first, then states, then combinations.*
 Arithmetic bugs in firmware cluster at thresholds and at type limits, not in the
 middle of ranges.
 
+### 2.1 "One either side" depends on what the input is made of
+
+Boundary analysis says to test at the threshold and adjacent to it. What counts as
+*adjacent* is not the same for every input, and getting this wrong is how a boundary
+test ends up looking rigorous while pinning nothing.
+
+| Input | Adjacent means | How tight the result is |
+|---|---|---|
+| **Quantised** - ADC counts, step numbers, indices, enum values | the next representable value: `n` and `n-1` | exact. No error can hide between the two samples |
+| **Continuous** - a `real32_T` temperature, a filtered voltage | whatever gap you choose | only as tight as that gap |
+
+`temp_monitor` takes ADC counts, so 1613 and 1614 pin `WARN_CLEAR` completely: there
+is no value in between, and no wrong threshold survives. The `heater_ctrl` model takes
+`temp_degC` as a float, where "the next value up" is a meaningless 6e-6 °C away. Its
+tests straddle the trip point at 60.0 and 60.1, which pins it to a tenth of a degree
+and says so in the constants.
+
+**Choose that gap from the requirement, not from what is convenient**, and write the
+number down. A trip point wrong by 0.05 °C is inside sensor tolerance and not a defect;
+one wrong by 0.5 °C might be. The test is the only place that distinction is recorded.
+Chasing `nextafterf` instead buys precision nobody asked for and a test that reads as
+though the threshold were exact when physically it is not.
+
 ## 3. Worked example - deriving `test_temp_monitor.c`
 
 `temp_monitor` is small enough to derive exhaustively and real enough to be
@@ -235,6 +258,23 @@ could be broken without a single test noticing, in a module at 100% line coverag
 That is the gap between "every line ran" and "every behaviour is pinned", and it is
 why that module now has a boundary test at each threshold.
 
+Not every survivor is a missing test, and treating them all as one is how the exercise
+turns into busywork. Applied across this repository's five modules, the survivors
+sorted into three kinds:
+
+| Kind | Example found here | What to do |
+|---|---|---|
+| **A missing test** | the trip point in `heater_ctrl`; `adc_hal` never reading its highest valid channel, nor asserting the clock prescaler it programs | write it |
+| **An equivalent mutant** - the change cannot alter observable behaviour | `spins >= TIMEOUT` → `>`: the poll gives up one iteration later and nothing outside the function can tell | nothing. Pinning it would mean exposing the spin count, which is not behaviour |
+| **A limit of the isolation pattern** | dropping `adc_hal_init()`'s reset *pulse*. The overlay is a plain RAM struct, so it records the final value of `RSTCR`, not that it was written twice | note it, and decide deliberately whether the risk justifies a write-logging fake |
+
+That last row is the one worth dwelling on: **the register-overlay pattern sees end
+state, not write sequences.** Ordering, pulses and write-once registers are invisible
+to it. If a driver's correctness depends on the *order* of its writes rather than
+where they land, the overlay cannot prove it, and you need a fake that logs writes or
+a mocked accessor with `:enforce_strict_ordering` ([05](05-choosing-a-method.md) §2).
+Knowing the limit is most of the value; re-architecting for it usually is not.
+
 ### 4.4 What not to test
 
 - **The compiler and the language.** No tests for `uint8_t` arithmetic itself.
@@ -365,7 +405,9 @@ is small enough for the overlay pattern to cover completely.
 ## 10. Checklist for a module's test suite
 
 - [ ] every input axis has been partitioned, and each partition has a test
-- [ ] every threshold has a test at it and one either side
+- [ ] every threshold has a test at it and one either side, with "either side" meaning
+      the adjacent value for a quantised input and a gap you chose deliberately for a
+      continuous one (§2.1)
 - [ ] every state variable's transitions are covered, including the "holds previous
       value" ones that need two steps
 - [ ] conditions that combine have a decision table, and every reachable row has a test

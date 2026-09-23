@@ -82,7 +82,11 @@ code under test insists on talking to something.**
   (`docs/02` §3 covers mocking HALCoGen headers directly when you must.)
 - **Overlay beats mock for drivers.** Mocking a register-access helper and then
   asserting "it called the helper" tests nothing: getting the bits right *is* the
-  driver's entire job. Point the overlay at RAM and assert on the bits.
+  driver's entire job. Point the overlay at RAM and assert on the bits. Its one blind
+  spot: a RAM struct records the final value, not the sequence of writes, so reset
+  pulses, write-once registers and required orderings are invisible to it. Where the
+  order is the requirement, mock an accessor and let `:enforce_strict_ordering` police
+  it ([08](08-test-design-and-strategy.md) §4.3).
 - **Count your mocks.** One or two per test file is normal. `test_heater_task.c` has
   three and is at the limit. Four or more usually means the module under test has too
   many collaborators - fix the module, not the test.
