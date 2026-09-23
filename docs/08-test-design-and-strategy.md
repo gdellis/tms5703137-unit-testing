@@ -88,22 +88,29 @@ Working backwards through `counts * 3300 / 4095 - 500`:
 | just below `FAULT` | 1861 | 999 | not latch |
 | at `FAULT` | 1862 | 1000 | latch |
 
-**This is a real gap in the current suite, and it has been measured.** Applying §4.3's
-break-it check to `temp_monitor.c`:
+**This derivation found a real gap, and the boundary tests in `test_temp_monitor.c`
+are what closing it looks like.** Before they existed, applying §4.3's break-it check
+to `temp_monitor.c` gave:
 
-| Mutation | Suite result |
-|---|---|
-| `temp_dc >= FAULT_DC` → `>` | **passes** - defect not caught |
-| `temp_dc >= WARN_SET_DC` → `>` | **passes** - defect not caught |
-| `temp_dc < WARN_CLEAR_DC` → `<=` | **passes** - defect not caught |
-| `error_count >= MAX_SENSOR_ERRORS` → `>` | fails - defect caught |
+| Mutation | Before | After |
+|---|---|---|
+| `temp_dc >= FAULT_DC` → `>` | **passed** - defect not caught | fails |
+| `temp_dc >= WARN_SET_DC` → `>` | **passed** - defect not caught | fails |
+| `temp_dc < WARN_CLEAR_DC` → `<=` | **passed** - defect not caught | fails |
+| `error_count >= MAX_SENSOR_ERRORS` → `>` | fails | fails |
 
-Three of the four off-by-one mutations survive. The counter one is caught only because
+Three of the four off-by-one mutations survived a suite reporting **100% line
+coverage**. The counter one was caught only because
 `test_sensor_error_only_after_consecutive_failures` happens to sit exactly on its
-threshold - which is precisely what §3.2 asks you to do deliberately for the other
-three. The pure conversion function *is* boundary-tested (0, mid, 4095 and the
-out-of-range `0xFFFF` clamp), and the suite reports 100% line coverage, which is why
-this gap is easy to miss. Worth closing.
+threshold - accidentally doing what this section asks you to do deliberately. The
+conversion function had been boundary-tested all along (0, mid, 4095 and the
+out-of-range `0xFFFF` clamp), which is part of why the gap was easy to miss.
+
+Closing it took seven tests: one pinning the six counts above to the conversion, so a
+change to the sensor model fails there rather than mysteriously in a threshold test,
+and one at each threshold plus one a single count below it. The "one below" half is
+not padding - it kills the opposite mutation, moving a threshold *down* by one, which
+the tests sitting exactly on the thresholds do not.
 
 ### 3.3 State transitions
 
@@ -224,8 +231,9 @@ Always revert. A mutation left in the tree is a defect, and the point of the exe
 is the test you write, not the edit.
 
 §3.2 is what this found on `temp_monitor.c`: three of its four threshold comparisons
-can be broken without a single test noticing, in a module at 100% line coverage. That
-is the gap between "every line ran" and "every behaviour is pinned".
+could be broken without a single test noticing, in a module at 100% line coverage.
+That is the gap between "every line ran" and "every behaviour is pinned", and it is
+why that module now has a boundary test at each threshold.
 
 ### 4.4 What not to test
 

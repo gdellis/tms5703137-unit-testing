@@ -347,8 +347,9 @@ exercised.
 Coverage tells you what is untested. It does not tell you that what is covered is
 correct, and a percentage is not a substitute for testing the boundary values in §7.
 [08](08-test-design-and-strategy.md) §4 goes into how much is enough, and §3.2 there
-shows this suite passing at 100% line coverage while three of `temp_monitor.c`'s four
-threshold comparisons can be broken without a test noticing.
+records this suite once passing at 100% line coverage while three of
+`temp_monitor.c`'s four threshold comparisons could be broken without a test
+noticing - the boundary tests that closed it are the worked example.
 
 ## 14. Anti-patterns
 

@@ -44,6 +44,18 @@ static void given_adc_fails(adc_hal_status_t err)
 #define COUNTS_FOR_1050_DC  (1924U)   /*  105.0 degC - above FAULT */
 #define COUNTS_FOR_2800_DC  (4095U)   /*  280.0 degC - full scale */
 
+/* Threshold boundaries: the first count that reaches each threshold, and the count
+ * below it. Derived from the conversion above, and pinned by
+ * test_counts_to_dc_at_threshold_boundaries so they fail loudly if the sensor model
+ * moves. The representatives above cannot catch a >= written as > - these can.
+ * See docs/08-test-design-and-strategy.md section 3.2. */
+#define COUNTS_FOR_799_DC   (1613U)   /*   79.9 degC - one count below WARN_CLEAR */
+#define COUNTS_FOR_800_DC   (1614U)   /*   80.0 degC - exactly WARN_CLEAR         */
+#define COUNTS_FOR_849_DC   (1675U)   /*   84.9 degC - one count below WARN_SET   */
+#define COUNTS_FOR_850_DC   (1676U)   /*   85.0 degC - exactly WARN_SET           */
+#define COUNTS_FOR_999_DC   (1861U)   /*   99.9 degC - one count below FAULT      */
+#define COUNTS_FOR_1000_DC  (1862U)   /*  100.0 degC - exactly FAULT              */
+
 /* ---- fixture ------------------------------------------------------------------ */
 
 void setUp(void)
@@ -194,4 +206,74 @@ void test_latched_fault_dominates_sensor_error(void)
     (void)temp_monitor_update();
     (void)temp_monitor_update();
     TEST_ASSERT_EQUAL(TEMP_MONITOR_FAULT, temp_monitor_update());
+}
+
+/* ---- threshold boundaries ------------------------------------------------------ */
+/* One test at each threshold and one a single count below it. The tests above use a
+ * representative from each partition, which executes every line but cannot tell >=
+ * from > - each of these fails if its comparison is loosened or tightened by one. */
+
+void test_counts_to_dc_at_threshold_boundaries(void)
+{
+    /* Pins the six constants to the conversion. If the sensor model changes, this
+     * fails here rather than as a puzzling failure in the tests below. */
+    TEST_ASSERT_EQUAL_INT16(799,  temp_monitor_counts_to_dc(COUNTS_FOR_799_DC));
+    TEST_ASSERT_EQUAL_INT16(800,  temp_monitor_counts_to_dc(COUNTS_FOR_800_DC));
+    TEST_ASSERT_EQUAL_INT16(849,  temp_monitor_counts_to_dc(COUNTS_FOR_849_DC));
+    TEST_ASSERT_EQUAL_INT16(850,  temp_monitor_counts_to_dc(COUNTS_FOR_850_DC));
+    TEST_ASSERT_EQUAL_INT16(999,  temp_monitor_counts_to_dc(COUNTS_FOR_999_DC));
+    TEST_ASSERT_EQUAL_INT16(1000, temp_monitor_counts_to_dc(COUNTS_FOR_1000_DC));
+}
+
+void test_warn_sets_exactly_at_warn_set_threshold(void)
+{
+    given_adc_reads(COUNTS_FOR_850_DC);
+
+    TEST_ASSERT_EQUAL(TEMP_MONITOR_WARN, temp_monitor_update());
+}
+
+void test_warn_does_not_set_one_count_below_warn_set(void)
+{
+    /* 849 dC is inside the hysteresis band, so this holds the initial state rather
+     * than clearing: from init warn is down, and must stay down. */
+    given_adc_reads(COUNTS_FOR_849_DC);
+
+    TEST_ASSERT_EQUAL(TEMP_MONITOR_OK, temp_monitor_update());
+}
+
+void test_warn_holds_exactly_at_warn_clear_threshold(void)
+{
+    /* Clearing requires temp < WARN_CLEAR, so at exactly WARN_CLEAR the warning
+     * stays up; a <= would drop it one count early. */
+    given_adc_reads(COUNTS_FOR_850_DC);
+    given_adc_reads(COUNTS_FOR_800_DC);
+
+    TEST_ASSERT_EQUAL(TEMP_MONITOR_WARN, temp_monitor_update());
+    TEST_ASSERT_EQUAL(TEMP_MONITOR_WARN, temp_monitor_update());
+}
+
+void test_warn_clears_one_count_below_warn_clear_threshold(void)
+{
+    given_adc_reads(COUNTS_FOR_850_DC);
+    given_adc_reads(COUNTS_FOR_799_DC);
+
+    TEST_ASSERT_EQUAL(TEMP_MONITOR_WARN, temp_monitor_update());
+    TEST_ASSERT_EQUAL(TEMP_MONITOR_OK,   temp_monitor_update());
+}
+
+void test_fault_latches_exactly_at_fault_threshold(void)
+{
+    given_adc_reads(COUNTS_FOR_1000_DC);
+
+    TEST_ASSERT_EQUAL(TEMP_MONITOR_FAULT, temp_monitor_update());
+    TEST_ASSERT_TRUE(temp_monitor_fault_latched());
+}
+
+void test_fault_does_not_latch_one_count_below_fault_threshold(void)
+{
+    /* 999 dC is over WARN_SET but under FAULT: warn, and nothing latched. */
+    given_adc_reads(COUNTS_FOR_999_DC);
+
+    TEST_ASSERT_EQUAL(TEMP_MONITOR_WARN, temp_monitor_update());
+    TEST_ASSERT_FALSE(temp_monitor_fault_latched());
 }
