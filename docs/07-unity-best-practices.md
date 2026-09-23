@@ -2,7 +2,8 @@
 
 Conventions for writing Unity + CMock tests in a TMS570 project. Every example is
 taken from, or matches, the tests in `test/`. [05](05-choosing-a-method.md) decides
-*which* kind of test to write; this page is about writing it well once decided.
+*which* kind of test to write and [08](08-test-design-and-strategy.md) decides *which
+cases* it should cover; this page is about writing it well once both are settled.
 
 The rules that look fussy - no `malloc`, explicit tolerances, reset state in `setUp()`
 - are the ones that keep the same source file running on the host **and** on the
@@ -345,6 +346,9 @@ exercised.
 
 Coverage tells you what is untested. It does not tell you that what is covered is
 correct, and a percentage is not a substitute for testing the boundary values in §7.
+[08](08-test-design-and-strategy.md) §4 goes into how much is enough, and §3.2 there
+shows this suite passing at 100% line coverage while three of `temp_monitor.c`'s four
+threshold comparisons can be broken without a test noticing.
 
 ## 14. Anti-patterns
 

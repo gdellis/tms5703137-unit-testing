@@ -20,6 +20,7 @@ The repo exists to settle the approach and to be copied into real TMS570 project
 | [05-choosing-a-method.md](docs/05-choosing-a-method.md) | you have a module in front of you and need to pick a pattern and a venue |
 | [06-new-project-setup.md](docs/06-new-project-setup.md) | you are starting a **new** project and want the setup for the tracks you chose |
 | [07-unity-best-practices.md](docs/07-unity-best-practices.md) | you are writing the tests themselves |
+| [08-test-design-and-strategy.md](docs/08-test-design-and-strategy.md) | you need to decide *what* to test, how to derive the cases, and how much is enough |
 
 ## Quick start
 

@@ -249,7 +249,9 @@ cmake --build --preset host-coverage-report     # ctest, then gcovr
   clear a fault), so each got a test - `test_error_counter_saturates_without_wrapping`
   and `test_overtemp_counter_saturates_without_wrapping` - and the suite is now at
   100% branches. Expect the branch view to point at exactly this kind of thing.
-  Gate on line coverage; read branch coverage.
+  Gate on line coverage; read branch coverage. Why a coverage percentage is a floor
+  rather than a target, and what to use instead to judge suite strength, is in
+  [08-test-design-and-strategy.md](08-test-design-and-strategy.md) §4.
 - **gcc only.** clang emits a different profile format; the preset refuses other
   compilers. gcovr runs anywhere Python does (`pip install gcovr`), including
   Windows, which is why it was chosen over lcov/genhtml.

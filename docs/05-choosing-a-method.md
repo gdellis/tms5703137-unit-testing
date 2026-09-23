@@ -193,5 +193,7 @@ only stays true if tests avoid the host luxuries the target does not have:
 
 Every one of them runs in all four host presets and cross-compiles with `armcl` in
 CI. Next: [06-new-project-setup.md](06-new-project-setup.md) sets a project up around
-whichever of these you chose, and [07-unity-best-practices.md](07-unity-best-practices.md)
-covers writing the tests themselves.
+whichever of these you chose, [07-unity-best-practices.md](07-unity-best-practices.md)
+covers writing the tests themselves, and
+[08-test-design-and-strategy.md](08-test-design-and-strategy.md) covers deciding which
+test cases to write once the pattern is settled.
