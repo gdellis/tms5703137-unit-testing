@@ -150,11 +150,12 @@ only); `target-dryrun` exercises the plumbing with stand-in `armcl` scripts.
 | `01-approach-and-options.md` | decision record: why Unity + CMock; why SPNU615 and Simulink SIL are not first-pass |
 | `02-adopting-in-your-project.md` | retrofitting an existing HALCoGen / Embedded Coder project |
 | `03-on-target.md` | running the same tests on the board |
-| `04-simulink-test.md` | MIL/SIL/PIL sketch — **unverified, never executed**, needs licences |
+| `04-simulink-test.md` | MIL/SIL/PIL: what each proves and how to run it — **reference, never executed**, needs licences |
 | `05-choosing-a-method.md` | picking a pattern and a venue |
 | `06-new-project-setup.md` | green-field setup, track A plus add-ons |
 | `07-unity-best-practices.md` | writing the test: lifecycle, assertions, CMock traps |
 | `08-test-design-and-strategy.md` | deriving cases, how much is enough, designing for testability |
+| `09-hil-testing.md` | hardware-in-the-loop: rig anatomy, fault injection — **reference, no rig here** |
 
 Prose wraps at 88 columns (markdownlint allows 90; tables and code blocks are exempt).
 `matlab/` is an unverified sketch written without MATLAB — every API call there is

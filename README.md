@@ -16,11 +16,12 @@ The repo exists to settle the approach and to be copied into real TMS570 project
 | [01-approach-and-options.md](docs/01-approach-and-options.md) | you want the decision record - why Unity + CMock, and why TI's SPNU615 "Test Automation Unit" and Simulink SIL are *not* the first-pass tools |
 | [02-adopting-in-your-project.md](docs/02-adopting-in-your-project.md) | you have an **existing** HALCoGen / Embedded Coder project to retrofit |
 | [03-on-target.md](docs/03-on-target.md) | you want the same tests running on the board |
-| [04-simulink-test.md](docs/04-simulink-test.md) | you have Simulink Test licences and want MIL/SIL/PIL equivalence (unverified sketch) |
+| [04-simulink-test.md](docs/04-simulink-test.md) | you want MIL, SIL or PIL - what each proves and how to run it end to end (reference; needs Simulink Test licences) |
 | [05-choosing-a-method.md](docs/05-choosing-a-method.md) | you have a module in front of you and need to pick a pattern and a venue |
 | [06-new-project-setup.md](docs/06-new-project-setup.md) | you are starting a **new** project and want the setup for the tracks you chose |
 | [07-unity-best-practices.md](docs/07-unity-best-practices.md) | you are writing the tests themselves |
 | [08-test-design-and-strategy.md](docs/08-test-design-and-strategy.md) | you need to decide *what* to test, how to derive the cases, and how much is enough |
+| [09-hil-testing.md](docs/09-hil-testing.md) | you have, or are costing, a hardware-in-the-loop rig - what it proves that PIL cannot, and the fault-injection catalogue |
 
 ## Quick start
 
@@ -128,11 +129,13 @@ on-target execution, coverage. Things this template deliberately leaves to the r
 project:
 
 - **Hardware-in-the-loop tests** (does the ADC actually convert?) - a separate suite
-  with board fixtures, not the overlay tests re-run on silicon.
-- **Simulink Test SIL/PIL** for model-vs-code equivalence, on the Simulink side;
-  complementary to the model/glue tests here (docs/02 section 5). An unverified
-  sketch of what that track looks like - Test Manager scripting, MIL/SIL/PIL,
-  CI on a self-hosted runner - is in
+  with board fixtures and a rig, not the overlay tests re-run on silicon. The
+  approach, rig anatomy and fault-injection catalogue are in
+  [docs/09-hil-testing.md](docs/09-hil-testing.md); no rig exists here.
+- **Simulink Test MIL/SIL/PIL** for model-vs-code equivalence, on the Simulink side;
+  complementary to the model/glue tests here (docs/02 section 5). What each stage
+  proves and how to run it - Test Manager authoring, tolerance policy, failure
+  triage, CI on a self-hosted runner - is in
   [docs/04-simulink-test.md](docs/04-simulink-test.md).
 - **A coverage gate** once there is real code: `-DCOVERAGE_FAIL_UNDER_LINE=<pct>`
   (docs/02 section 8).
